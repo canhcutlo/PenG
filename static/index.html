@@ -180,12 +180,14 @@
         /* ── Mindmap ──────────────────────────────────────────────── */
         .mindmap-container {
             min-height: 300px;
+            max-height: 80vh;
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            overflow: hidden;
+            overflow: auto;
             background: #fff;
+            resize: vertical;
         }
-        .mindmap-container svg { width: 100%; height: 500px; }
+        .mindmap-container svg { min-width: 100%; height: auto; }
         .mindmap-md {
             background: var(--surface2);
             border: 1px solid var(--border);
