@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.env
+
+# ChromaDB
+chroma_data/
+
+# SQLite
+*.db
+*.sqlite3
+
+# Upload temp
+uploads/
+temp/
+
+# IDE
+.vscode/
+.idea/
+
+# Colab
+.ipynb_checkpoints/
+
+# Node (for markmap/quiz frontend)
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

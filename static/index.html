@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PenG - AI Học Tập</title>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.17.0"></script>
+    <style>
+        /* ── Reset & Base ─────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #242836;
+            --border: #2e3348;
+            --text: #e2e4ed;
+            --text-dim: #8b8fa3;
+            --accent: #6c63ff;
+            --accent-hover: #5a52e0;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --error: #f87171;
+            --radius: 10px;
+            --shadow: 0 4px 24px rgba(0,0,0,.35);
+        }
+        html { font-size: 15px; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* ── Layout ───────────────────────────────────────────────── */
+        .container { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+            position: sticky; top: 0; z-index: 100;
+        }
+        header .container {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 8px;
+        }
+        .logo { font-size: 1.4rem; font-weight: 700; letter-spacing: -.5px; }
+        .logo span { color: var(--accent); }
+        .health-badge {
+            font-size: .75rem; padding: 3px 10px; border-radius: 20px;
+            background: var(--surface2); color: var(--text-dim);
+        }
+        .health-badge.ok { background: #064e3b; color: var(--success); }
+        .health-badge.err { background: #450a0a; color: var(--error); }
+
+        /* ── Tabs ─────────────────────────────────────────────────── */
+        .tabs {
+            display: flex; gap: 4px; padding: 12px 0 0;
+            overflow-x: auto; -webkit-overflow-scrolling: touch;
+        }
+        .tab-btn {
+            padding: 8px 18px; border: none; border-radius: var(--radius) var(--radius) 0 0;
+            background: var(--surface); color: var(--text-dim); cursor: pointer;
+            font-size: .9rem; font-weight: 500; white-space: nowrap;
+            transition: background .2s, color .2s;
+        }
+        .tab-btn:hover { background: var(--surface2); color: var(--text); }
+        .tab-btn.active { background: var(--accent); color: #fff; }
+        .tab-panel { display: none; padding: 24px 0 48px; }
+        .tab-panel.active { display: block; }
+
+        /* ── Cards ────────────────────────────────────────────────── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+        .card h2 { font-size: 1.1rem; margin-bottom: 12px; }
+        .card h3 { font-size: .95rem; margin: 12px 0 6px; color: var(--text-dim); }
+
+        /* ── Form elements ────────────────────────────────────────── */
+        label { display: block; font-size: .85rem; color: var(--text-dim); margin-bottom: 4px; }
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+            border-radius: 8px; background: var(--surface2); color: var(--text);
+            font-size: .9rem; outline: none; transition: border .2s;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+        textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 10px 20px; border: none; border-radius: 8px;
+            background: var(--accent); color: #fff; font-size: .9rem;
+            font-weight: 600; cursor: pointer; transition: background .2s;
+        }
+        .btn:hover { background: var(--accent-hover); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .btn.secondary { background: var(--surface2); color: var(--text); }
+        .btn.secondary:hover { background: var(--border); }
+        .btn.danger { background: var(--error); }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+        .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .form-row > * { flex: 1; min-width: 180px; }
+
+        /* ── Drop zone ────────────────────────────────────────────── */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 32px 16px;
+            text-align: center;
+            color: var(--text-dim);
+            transition: border-color .2s, background .2s;
+            cursor: pointer;
+        }
+        .drop-zone.dragover { border-color: var(--accent); background: rgba(108,99,255,.08); }
+        .drop-zone p { margin-bottom: 8px; }
+        .drop-zone .icon { font-size: 2rem; margin-bottom: 8px; }
+
+        /* ── Progress ─────────────────────────────────────────────── */
+        .progress-bar {
+            height: 8px; background: var(--surface2); border-radius: 4px;
+            overflow: hidden; margin: 8px 0;
+        }
+        .progress-bar .fill {
+            height: 100%; background: var(--accent); border-radius: 4px;
+            transition: width .3s;
+        }
+        .status-text { font-size: .8rem; color: var(--text-dim); }
+        .status-text.success { color: var(--success); }
+        .status-text.error { color: var(--error); }
+
+        /* ── Result blocks ────────────────────────────────────────── */
+        .result {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 12px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: .9rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .citation {
+            border-left: 3px solid var(--accent);
+            padding: 8px 12px;
+            margin: 8px 0;
+            background: rgba(108,99,255,.06);
+            border-radius: 0 6px 6px 0;
+            font-size: .85rem;
+        }
+        .citation .meta { color: var(--text-dim); font-size: .75rem; }
+
+        /* ── Quiz ─────────────────────────────────────────────────── */
+        .quiz-question { margin-bottom: 20px; }
+        .quiz-question .q-text { font-weight: 600; margin-bottom: 8px; }
+        .quiz-option {
+            display: block; padding: 10px 14px; margin: 4px 0;
+            border: 1px solid var(--border); border-radius: 8px;
+            cursor: pointer; transition: background .15s, border-color .15s;
+        }
+        .quiz-option:hover { background: var(--surface2); }
+        .quiz-option input { margin-right: 8px; }
+        .quiz-option.correct { border-color: var(--success); background: rgba(52,211,153,.1); }
+        .quiz-option.wrong { border-color: var(--error); background: rgba(248,113,113,.1); }
+        .quiz-score {
+            text-align: center; padding: 20px;
+            font-size: 1.3rem; font-weight: 700;
+        }
+        .quiz-score .pct { color: var(--accent); font-size: 2rem; }
+
+        /* ── Mindmap ──────────────────────────────────────────────── */
+        .mindmap-container {
+            min-height: 300px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: #fff;
+        }
+        .mindmap-container svg { width: 100%; height: 500px; }
+        .mindmap-md {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            font-size: .8rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+
+        /* ── Table ────────────────────────────────────────────────── */
+        .tbl-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-dim); font-weight: 600; }
+        tr:hover td { background: var(--surface2); }
+
+        /* ── Toast / Alert ────────────────────────────────────────── */
+        .alert {
+            padding: 12px 16px; border-radius: 8px; margin: 12px 0;
+            font-size: .85rem;
+        }
+        .alert.error { background: #450a0a; color: var(--error); border: 1px solid #7f1d1d; }
+        .alert.success { background: #064e3b; color: var(--success); border: 1px solid #065f46; }
+        .alert.info { background: #1e1b4b; color: #a5b4fc; border: 1px solid #3730a3; }
+
+        /* ── Spinner ──────────────────────────────────────────────── */
+        .spinner {
+            display: inline-block; width: 18px; height: 18px;
+            border: 2px solid var(--border); border-top-color: var(--accent);
+            border-radius: 50%; animation: spin .7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading { display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: .85rem; }
+
+        /* ── Responsive ───────────────────────────────────────────── */
+        @media (max-width: 600px) {
+            html { font-size: 14px; }
+            .card { padding: 14px; }
+            .tab-btn { padding: 6px 12px; font-size: .8rem; }
+            .form-row > * { min-width: 100%; }
+        }
+
+        /* ── Copy button ──────────────────────────────────────────── */
+        .copy-btn {
+            position: relative;
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 4px 10px; border: 1px solid var(--border);
+            border-radius: 6px; background: var(--surface2);
+            color: var(--text-dim); font-size: .75rem; cursor: pointer;
+        }
+        .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+        .copy-btn.copied { color: var(--success); border-color: var(--success); }
+
+        /* ── Utility ──────────────────────────────────────────────── */
+        .hidden { display: none !important; }
+        .mt-8 { margin-top: 8px; }
+        .mt-12 { margin-top: 12px; }
+        .mt-16 { margin-top: 16px; }
+        .mb-8 { margin-bottom: 8px; }
+        .text-sm { font-size: .8rem; }
+        .text-dim { color: var(--text-dim); }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header>
+    <div class="container">
+        <div class="logo">Pen<span>G</span></div>
+        <div id="healthBadge" class="health-badge">Đang kiểm tra...</div>
+    </div>
+</header>
+
+<!-- ═══════════════════ TABS ═══════════════════ -->
+<div class="container">
+    <nav class="tabs" role="tablist">
+        <button class="tab-btn active" data-tab="upload" role="tab">Upload</button>
+        <button class="tab-btn" data-tab="query" role="tab">Hỏi đáp</button>
+        <button class="tab-btn" data-tab="quiz" role="tab">Quiz</button>
+        <button class="tab-btn" data-tab="mindmap" role="tab">Mindmap</button>
+        <button class="tab-btn" data-tab="history" role="tab">Lịch sử</button>
+    </nav>
+</div>
+
+<!-- ═══════════════════ UPLOAD TAB ═══════════════════ -->
+<div class="container">
+    <section id="tab-upload" class="tab-panel active">
+        <div class="card">
+            <h2>Upload tài liệu học tập</h2>
+            <div class="drop-zone" id="dropZone">
+                <div class="icon">📁</div>
+                <p>Kéo thả file vào đây hoặc <strong>nhấn để chọn</strong></p>
+                <p class="text-sm text-dim">Hỗ trợ: audio, ảnh, PDF, video (tối đa 500 MB)</p>
+                <input type="file" id="fileInput" hidden>
+            </div>
+            <div class="form-row mt-12">
+                <div>
+                    <label for="categorySelect">Loại tài liệu</label>
+                    <select id="categorySelect">
+                        <option value="image">Ảnh (image)</option>
+                        <option value="audio">Audio</option>
+                        <option value="pdf">PDF</option>
+                        <option value="video">Video</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="selectedFile">File đã chọn</label>
+                    <input type="text" id="selectedFile" placeholder="Chưa chọn file..." readonly>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="uploadBtn" disabled>Upload</button>
+            </div>
+
+            <!-- Upload result -->
+            <div id="uploadResult" class="hidden mt-16"></div>
+
+            <!-- Job progress -->
+            <div id="jobProgress" class="hidden mt-16">
+                <h3>Tiến trình xử lý</h3>
+                <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
+                <div class="status-text" id="progressText">Đang chờ...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════ QUERY TAB ═══════════════════ -->
+    <section id="tab-query" class="tab-panel">
+        <div class="card">
+            <h2>Hỏi đáp với tài liệu</h2>
+            <div class="form-row">
+                <div style="flex:3">
+                    <label for="queryInput">Câu hỏi</label>
+                    <textarea id="queryInput" placeholder="Ví dụ: Tóm tắt nội dung chính của tài liệu..."></textarea>
+                </div>
+                <div style="flex:1">
+                    <label for="topK">Số kết quả</label>
+                    <input type="number" id="topK" value="5" min="1" max="20">
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="queryBtn">Hỏi</button>
+            </div>
+
+            <div id="queryResult" class="hidden mt-16"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════ QUIZ TAB ═══════════════════ -->
+    <section id="tab-quiz" class="tab-panel">
+        <div class="card">
+            <h2>Tạo Quiz từ tài liệu</h2>
+            <div class="form-row">
+                <div>
+                    <label for="quizDocId">Document ID</label>
+                    <input type="text" id="quizDocId" placeholder="Nhập doc_id...">
+                </div>
+                <div>
+                    <label for="quizNum">Số câu hỏi</label>
+                    <input type="number" id="quizNum" value="5" min="1" max="20">
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="generateQuizBtn">Tạo Quiz</button>
+            </div>
+
+            <div id="quizArea" class="hidden mt-16"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════ MINDMAP TAB ═══════════════════ -->
+    <section id="tab-mindmap" class="tab-panel">
+        <div class="card">
+            <h2>Mindmap tài liệu</h2>
+            <div class="form-row">
+                <div>
+                    <label for="mindmapDocId">Document ID</label>
+                    <input type="text" id="mindmapDocId" placeholder="Nhập doc_id...">
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="mindmapBtn">Tạo Mindmap</button>
+            </div>
+
+            <div id="mindmapArea" class="hidden mt-16"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════ HISTORY TAB ═══════════════════ -->
+    <section id="tab-history" class="tab-panel">
+        <div class="card">
+            <div class="flex-between">
+                <h2>Lịch sử hoạt động</h2>
+                <button class="btn secondary" id="refreshHistory" style="padding:6px 14px;font-size:.8rem;">Làm mới</button>
+            </div>
+            <div id="historyArea" class="mt-12"></div>
+        </div>
+    </section>
+</div>
+
+<!-- ═══════════════════ SCRIPTS ═══════════════════ -->
+<script>
+(function () {
+    "use strict";
+
+    /* ── Helpers ─────────────────────────────────────────────── */
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+    const API = ""; // relative — works with ngrok automatically
+
+    function el(tag, attrs, ...children) {
+        const node = document.createElement(tag);
+        if (attrs) {
+            Object.entries(attrs).forEach(([k, v]) => {
+                if (k === "className") node.className = v;
+                else if (k === "innerHTML") node.innerHTML = v;
+                else if (k.startsWith("on")) node.addEventListener(k.slice(2).toLowerCase(), v);
+                else node.setAttribute(k, v);
+            });
+        }
+        children.flat().forEach((c) => {
+            if (c == null) return;
+            node.append(typeof c === "string" ? document.createTextNode(c) : c);
+        });
+        return node;
+    }
+
+    function showAlert(container, type, message) {
+        const alert = el("div", { className: `alert ${type}` }, message);
+        container.prepend(alert);
+        setTimeout(() => alert.remove(), 6000);
+    }
+
+    async function apiFetch(url, opts = {}) {
+        const res = await fetch(API + url, { ...opts });
+        if (!res.ok) {
+            let detail = res.statusText;
+            try { detail = (await res.json()).detail || detail; } catch {}
+            throw new Error(detail);
+        }
+        return res.json();
+    }
+
+    /* ── Health check ────────────────────────────────────────── */
+    async function checkHealth() {
+        const badge = $("#healthBadge");
+        try {
+            const data = await apiFetch("/api/health");
+            badge.textContent = data.db === "ok" ? "Hệ thống hoạt động" : "DB lỗi";
+            badge.className = `health-badge ${data.db === "ok" ? "ok" : "err"}`;
+        } catch {
+            badge.textContent = "Không kết nối được";
+            badge.className = "health-badge err";
+        }
+    }
+    checkHealth();
+
+    /* ── Tab switching ───────────────────────────────────────── */
+    $$(".tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            $$(".tab-btn").forEach((b) => b.classList.remove("active"));
+            $$(".tab-panel").forEach((p) => p.classList.remove("active"));
+            btn.classList.add("active");
+            const tab = btn.dataset.tab;
+            $(`#tab-${tab}`).classList.add("active");
+            if (tab === "history") loadHistory();
+        });
+    });
+
+    /* ═══════════════════════════════════════════════════════════
+       UPLOAD
+       ═══════════════════════════════════════════════════════════ */
+    const dropZone = $("#dropZone");
+    const fileInput = $("#fileInput");
+    const selectedFile = $("#selectedFile");
+    const uploadBtn = $("#uploadBtn");
+    const uploadResult = $("#uploadResult");
+    const jobProgress = $("#jobProgress");
+    const progressFill = $("#progressFill");
+    const progressText = $("#progressText");
+    let selectedFileObj = null;
+
+    // Auto-detect category from file extension
+    function detectCategory(filename) {
+        const ext = filename.split(".").pop().toLowerCase();
+        const map = {
+            mp3: "audio", wav: "audio", ogg: "audio", m4a: "audio", flac: "audio",
+            jpg: "image", jpeg: "image", png: "image", gif: "image", webp: "image", bmp: "image",
+            pdf: "pdf",
+            mp4: "video", mkv: "video", avi: "video", mov: "video", webm: "video",
+        };
+        return map[ext] || "image";
+    }
+
+    function handleFile(file) {
+        selectedFileObj = file;
+        selectedFile.value = `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+        uploadBtn.disabled = false;
+        $("#categorySelect").value = detectCategory(file.name);
+    }
+
+    dropZone.addEventListener("click", () => fileInput.click());
+    dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+    dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener("change", () => {
+        if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    let pollInterval = null;
+
+    uploadBtn.addEventListener("click", async () => {
+        if (!selectedFileObj) return;
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<span class="spinner"></span> Đang upload...';
+        uploadResult.classList.add("hidden");
+        jobProgress.classList.add("hidden");
+
+        const category = $("#categorySelect").value;
+        const form = new FormData();
+        form.append("file", selectedFileObj);
+        form.append("category", category);
+
+        try {
+            const data = await apiFetch("/api/upload", { method: "POST", body: form });
+            uploadResult.classList.remove("hidden");
+            uploadResult.innerHTML = "";
+            showAlert(uploadResult, "success",
+                `Upload thành công! Doc ID: <strong>${data.doc_id}</strong> | Job ID: <strong>${data.job_id}</strong> | Trạng thái: ${data.status}`
+            );
+
+            // Copy doc_id to clipboard hint
+            const copyBtn = el("button", { className: "copy-btn mt-8", onclick: () => {
+                navigator.clipboard.writeText(data.doc_id);
+                copyBtn.textContent = "Đã copy!";
+                setTimeout(() => { copyBtn.textContent = "Copy Doc ID"; }, 1500);
+            }}, "Copy Doc ID");
+            uploadResult.appendChild(copyBtn);
+
+            // Start polling job progress
+            if (data.job_id && data.status !== "completed") {
+                jobProgress.classList.remove("hidden");
+                pollJob(data.job_id);
+            }
+        } catch (err) {
+            uploadResult.classList.remove("hidden");
+            showAlert(uploadResult, "error", `Upload thất bại: ${err.message}`);
+        } finally {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = "Upload";
+        }
+    });
+
+    function pollJob(jobId) {
+        if (pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(async () => {
+            try {
+                const job = await apiFetch(`/api/jobs/${jobId}`);
+                progressFill.style.width = `${job.progress}%`;
+                if (job.status === "completed") {
+                    progressText.textContent = "Hoàn tất!";
+                    progressText.className = "status-text success";
+                    clearInterval(pollInterval);
+                } else if (job.status === "failed") {
+                    progressText.textContent = `Lỗi: ${job.error_message || "Không rõ"}`;
+                    progressText.className = "status-text error";
+                    clearInterval(pollInterval);
+                } else {
+                    progressText.textContent = `Đang xử lý... (${job.progress}%)`;
+                    progressText.className = "status-text";
+                }
+            } catch {
+                progressText.textContent = "Không thể lấy trạng thái job";
+                progressText.className = "status-text error";
+                clearInterval(pollInterval);
+            }
+        }, 2000);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       QUERY
+       ═══════════════════════════════════════════════════════════ */
+    const queryBtn = $("#queryBtn");
+    const queryResult = $("#queryResult");
+
+    queryBtn.addEventListener("click", async () => {
+        const q = $("#queryInput").value.trim();
+        if (!q) { showAlert(queryResult, "error", "Vui lòng nhập câu hỏi."); return; }
+
+        queryBtn.disabled = true;
+        queryBtn.innerHTML = '<span class="spinner"></span> Đang tìm...';
+        queryResult.classList.remove("hidden");
+        queryResult.innerHTML = '<div class="loading"><span class="spinner"></span> Đang xử lý câu hỏi...</div>';
+
+        const topK = $("#topK").value || 5;
+        try {
+            const data = await apiFetch(`/api/query?q=${encodeURIComponent(q)}&top_k=${topK}`);
+            queryResult.innerHTML = "";
+
+            // Answer
+            const answerBlock = el("div", { className: "result" }, data.answer || "Không có câu trả lời.");
+            queryResult.appendChild(answerBlock);
+
+            // Citations
+            if (data.citations && data.citations.length) {
+                queryResult.appendChild(el("h3", {}, "Trích dẫn"));
+                data.citations.forEach((c) => {
+                    const meta = [
+                        c.page ? `Trang ${c.page}` : "",
+                        c.scene ? `Scene ${c.scene}` : "",
+                        c.timestamp != null ? `${formatTime(c.timestamp)}` : "",
+                    ].filter(Boolean).join(" · ");
+                    queryResult.appendChild(
+                        el("div", { className: "citation" },
+                            el("div", { className: "meta" }, meta || "Doc: " + c.doc_id),
+                            el("div", {}, c.chunk_text)
+                        )
+                    );
+                });
+            }
+
+            // Related chunks
+            if (data.related_chunks && data.related_chunks.length) {
+                queryResult.appendChild(el("h3", {}, "Đoạn liên quan"));
+                data.related_chunks.forEach((r, i) => {
+                    const meta = [
+                        r.source ? `Nguồn: ${r.source}` : "",
+                        r.score != null ? `Score: ${r.score.toFixed(3)}` : "",
+                    ].filter(Boolean).join(" · ");
+                    queryResult.appendChild(
+                        el("div", { className: "citation" },
+                            el("div", { className: "meta" }, `#${i + 1} · ${meta}`),
+                            el("div", {}, r.chunk)
+                        )
+                    );
+                });
+            }
+        } catch (err) {
+            queryResult.innerHTML = "";
+            showAlert(queryResult, "error", `Lỗi: ${err.message}`);
+        } finally {
+            queryBtn.disabled = false;
+            queryBtn.textContent = "Hỏi";
+        }
+    });
+
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s.toString().padStart(2, "0")}`;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       QUIZ
+       ═══════════════════════════════════════════════════════════ */
+    const generateQuizBtn = $("#generateQuizBtn");
+    const quizArea = $("#quizArea");
+    let currentQuiz = null;
+
+    generateQuizBtn.addEventListener("click", async () => {
+        const docId = $("#quizDocId").value.trim();
+        if (!docId) { showAlert(quizArea, "error", "Vui lòng nhập Document ID."); return; }
+
+        const numQ = $("#quizNum").value || 5;
+        generateQuizBtn.disabled = true;
+        generateQuizBtn.innerHTML = '<span class="spinner"></span> Đang tạo quiz...';
+        quizArea.classList.remove("hidden");
+        quizArea.innerHTML = '<div class="loading"><span class="spinner"></span> Đang sinh câu hỏi...</div>';
+
+        try {
+            const quiz = await apiFetch(`/api/quiz/generate?doc_id=${encodeURIComponent(docId)}&num_questions=${numQ}`, {
+                method: "POST",
+            });
+            currentQuiz = quiz;
+            renderQuiz(quiz);
+        } catch (err) {
+            quizArea.innerHTML = "";
+            showAlert(quizArea, "error", `Lỗi tạo quiz: ${err.message}`);
+        } finally {
+            generateQuizBtn.disabled = false;
+            generateQuizBtn.textContent = "Tạo Quiz";
+        }
+    });
+
+    function renderQuiz(quiz) {
+        quizArea.innerHTML = "";
+
+        // Quiz info
+        const info = el("div", { className: "flex-between mb-8" },
+            el("span", { className: "text-sm text-dim" }, `Quiz ID: ${quiz.quiz_id} · Doc: ${quiz.doc_id} · ${quiz.questions.length} câu`),
+            el("button", {
+                className: "copy-btn",
+                onclick: () => {
+                    navigator.clipboard.writeText(quiz.quiz_id);
+                    const b = event.target;
+                    b.textContent = "Đã copy!";
+                    setTimeout(() => { b.textContent = "Copy Quiz ID"; }, 1500);
+                }
+            }, "Copy Quiz ID")
+        );
+        quizArea.appendChild(info);
+
+        // Questions
+        const form = el("form", { id: "quizForm" });
+        quiz.questions.forEach((q, qi) => {
+            const qDiv = el("div", { className: "quiz-question" });
+            qDiv.appendChild(el("div", { className: "q-text" }, `Câu ${qi + 1}: ${q.question}`));
+
+            q.options.forEach((opt, oi) => {
+                const label = el("label", { className: "quiz-option", "data-qi": qi, "data-oi": oi });
+                const radio = el("input", { type: "radio", name: `q${qi}`, value: oi });
+                label.appendChild(radio);
+                label.appendChild(document.createTextNode(` ${opt}`));
+                qDiv.appendChild(label);
+            });
+
+            form.appendChild(qDiv);
+        });
+        quizArea.appendChild(form);
+
+        // Submit button
+        const submitBtn = el("button", {
+            type: "button",
+            className: "btn mt-12",
+            onclick: submitQuiz,
+        }, "Nộp bài");
+        quizArea.appendChild(submitBtn);
+
+        // Result area
+        quizArea.appendChild(el("div", { id: "quizScore" }));
+    }
+
+    async function submitQuiz() {
+        if (!currentQuiz) return;
+        const answers = [];
+        let allAnswered = true;
+
+        currentQuiz.questions.forEach((q, qi) => {
+            const selected = document.querySelector(`input[name="q${qi}"]:checked`);
+            if (!selected) { allAnswered = false; return; }
+            answers.push(parseInt(selected.value));
+        });
+
+        if (!allAnswered) {
+            showAlert($("#quizScore"), "error", "Vui lòng trả lời tất cả câu hỏi.");
+            return;
+        }
+
+        try {
+            const result = await apiFetch(`/api/quiz/${currentQuiz.quiz_id}/submit`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ quiz_id: currentQuiz.quiz_id, answers }),
+            });
+
+            const scoreDiv = $("#quizScore");
+            scoreDiv.innerHTML = "";
+            const pct = Math.round((result.score / result.total) * 100);
+            scoreDiv.appendChild(
+                el("div", { className: "quiz-score card" },
+                    el("div", { className: "pct" }, `${pct}%`),
+                    el("div", { className: "text-sm text-dim" }, `Đúng ${result.score}/${result.total} câu`)
+                )
+            );
+
+            // Highlight correct/wrong
+            currentQuiz.questions.forEach((q, qi) => {
+                const options = document.querySelectorAll(`label[data-qi="${qi}"]`);
+                options.forEach((opt) => {
+                    const oi = parseInt(opt.dataset.oi);
+                    if (oi === q.correct_index) opt.classList.add("correct");
+                    else if (oi === answers[qi] && oi !== q.correct_index) opt.classList.add("wrong");
+                });
+            });
+        } catch (err) {
+            showAlert($("#quizScore"), "error", `Lỗi nộp bài: ${err.message}`);
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       MINDMAP
+       ═══════════════════════════════════════════════════════════ */
+    const mindmapBtn = $("#mindmapBtn");
+    const mindmapArea = $("#mindmapArea");
+
+    mindmapBtn.addEventListener("click", async () => {
+        const docId = $("#mindmapDocId").value.trim();
+        if (!docId) { showAlert(mindmapArea, "error", "Vui lòng nhập Document ID."); return; }
+
+        mindmapBtn.disabled = true;
+        mindmapBtn.innerHTML = '<span class="spinner"></span> Đang tạo mindmap...';
+        mindmapArea.classList.remove("hidden");
+        mindmapArea.innerHTML = '<div class="loading"><span class="spinner"></span> Đang sinh mindmap...</div>';
+
+        try {
+            const data = await apiFetch(`/api/mindmap/${encodeURIComponent(docId)}`);
+            mindmapArea.innerHTML = "";
+
+            // Header with copy button
+            const header = el("div", { className: "flex-between mb-8" },
+                el("span", { className: "text-sm text-dim" }, `Doc ID: ${data.doc_id}`),
+                el("button", {
+                    className: "copy-btn",
+                    onclick: () => {
+                        navigator.clipboard.writeText(data.markdown);
+                        const b = event.target;
+                        b.textContent = "Đã copy!";
+                        setTimeout(() => { b.textContent = "Copy Markdown"; }, 1500);
+                    }
+                }, "Copy Markdown")
+            );
+            mindmapArea.appendChild(header);
+
+            // Mindmap visual (markmap)
+            const mmContainer = el("div", { className: "mindmap-container" });
+            const mmSvg = el("div", { className: "markmap" }, data.markdown);
+            mmContainer.appendChild(mmSvg);
+            mindmapArea.appendChild(mmContainer);
+
+            // Re-render markmap
+            if (window.markmap && window.markmap.autoLoader) {
+                window.markmap.autoLoader.renderAll();
+            }
+
+            // Raw markdown toggle
+            const toggleBtn = el("button", {
+                className: "btn secondary mt-8",
+                style: "font-size:.8rem;padding:6px 12px;",
+                onclick: () => {
+                    const raw = $("#mindmapRaw");
+                    raw.classList.toggle("hidden");
+                }
+            }, "Xem Markdown gốc");
+            mindmapArea.appendChild(toggleBtn);
+
+            const rawMd = el("div", { id: "mindmapRaw", className: "mindmap-md hidden" }, data.markdown);
+            mindmapArea.appendChild(rawMd);
+
+        } catch (err) {
+            mindmapArea.innerHTML = "";
+            showAlert(mindmapArea, "error", `Lỗi tạo mindmap: ${err.message}`);
+        } finally {
+            mindmapBtn.disabled = false;
+            mindmapBtn.textContent = "Tạo Mindmap";
+        }
+    });
+
+    /* ═══════════════════════════════════════════════════════════
+       HISTORY
+       ═══════════════════════════════════════════════════════════ */
+    const historyArea = $("#historyArea");
+
+    async function loadHistory() {
+        historyArea.innerHTML = '<div class="loading"><span class="spinner"></span> Đang tải lịch sử...</div>';
+        try {
+            const rows = await apiFetch("/api/history");
+            historyArea.innerHTML = "";
+            if (!rows.length) {
+                historyArea.innerHTML = '<p class="text-dim text-sm">Chưa có hoạt động nào.</p>';
+                return;
+            }
+
+            const wrap = el("div", { className: "tbl-wrap" });
+            const table = el("table", {},
+                el("thead", {},
+                    el("tr", {},
+                        el("th", {}, "#"),
+                        el("th", {}, "Doc ID"),
+                        el("th", {}, "Hành động"),
+                        el("th", {}, "Thời gian"),
+                        el("th", {}, "Chi tiết")
+                    )
+                ),
+                el("tbody", {},
+                    ...rows.map((r, i) =>
+                        el("tr", {},
+                            el("td", {}, i + 1),
+                            el("td", {}, r.doc_id),
+                            el("td", {}, actionLabel(r.action)),
+                            el("td", {}, r.created_at ? formatDate(r.created_at) : "—"),
+                            el("td", { className: "text-sm text-dim" }, r.metadata ? JSON.stringify(r.metadata).slice(0, 80) : "—")
+                        )
+                    )
+                )
+            );
+            wrap.appendChild(table);
+            historyArea.appendChild(wrap);
+        } catch (err) {
+            historyArea.innerHTML = "";
+            showAlert(historyArea, "error", `Lỗi tải lịch sử: ${err.message}`);
+        }
+    }
+
+    function actionLabel(action) {
+        const labels = {
+            uploaded: "Upload",
+            viewed: "Xem / Hỏi đáp",
+            quizzed: "Làm Quiz",
+            mindmapped: "Tạo Mindmap",
+        };
+        return labels[action] || action;
+    }
+
+    function formatDate(iso) {
+        try {
+            return new Date(iso).toLocaleString("vi-VN");
+        } catch {
+            return iso;
+        }
+    }
+
+    $("#refreshHistory").addEventListener("click", loadHistory);
+
+    // Load history on first tab switch
+    let historyLoaded = false;
+    const origTabClick = $$(".tab-btn");
+    // Already handled above; just trigger on first visit
+    const observer = new MutationObserver(() => {
+        if ($("#tab-history").classList.contains("active") && !historyLoaded) {
+            historyLoaded = true;
+            loadHistory();
+        }
+    });
+    observer.observe($("#tab-history"), { attributes: true, attributeFilter: ["class"] });
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+# PenG — Google Colab (GPU T4) dependencies
+# Run: !pip install -r requirements-colab.txt
+
+# Core
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+pydantic>=2.0
+pydantic-settings>=2.0
+aiofiles>=24.0
+
+# STT — pin ctranslate2 for CUDA compatibility
+faster-whisper>=1.0
+# If CUDA 11 detected, uncomment next line:
+# ctranslate2==3.24.0
+
+# OCR
+surya-ocr>=0.4  # Colab uses Python 3.11, Surya works
+easyocr>=1.7
+pytesseract>=0.3
+pymupdf>=1.24
+Pillow>=11.0
+
+# Video
+moviepy>=2.0
+scenedetect>=0.6
+opencv-python-headless>=4.9
+
+# RAG & Vector DB
+lightrag-hku==1.5.5  # pinned; ChromaDB deprecated in 1.5.5, default NanoVectorDB
+chromadb>=0.5
+
+# LLM & Structured Output — use 4-bit for T4 (15GB VRAM)
+instructor>=1.0
+transformers>=4.40
+torch>=2.3
+bitsandbytes>=0.43
+accelerate>=0.30
+sentence-transformers>=3.0
+
+# Colab tunneling
+pyngrok>=7.0
+nest-asyncio>=1.6
+
+# Testing
+pytest>=8.0
+pytest-asyncio>=0.25
+httpx>=0.27

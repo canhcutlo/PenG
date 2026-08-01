@@ -1,0 +1,7 @@
+[tool.pytest.ini_options]
+markers = [
+    "integration: tests that download or run AI models",
+    "slow: tests that take a long time",
+]
+testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "function"
