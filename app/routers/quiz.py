@@ -25,7 +25,7 @@ async def generate_quiz_endpoint(doc_id: str, num_questions: int = 5):
 
         quiz = await generate_quiz(text, num_questions=num_questions)
         quiz_id = uuid.uuid4().hex[:12]
-        questions_data = [q.model_dump() for q in quiz.questions]
+        questions_data = [{"id": i, **q.model_dump()} for i, q in enumerate(quiz.questions)]
         insert_quiz(quiz_id, doc_id, questions_data)
         log_activity(doc_id, "quizzed", {"quiz_id": quiz_id, "num_questions": num_questions})
 

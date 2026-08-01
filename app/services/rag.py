@@ -85,5 +85,32 @@ async def query_documents(query: str, top_k: int = 5, mode: str = "naive") -> di
         enable_rerank=False,
         include_references=True,
     )
-    answer = await rag.aquery(query, param=param)
-    return {"answer": str(answer or ""), "citations": []}
+    raw = await rag.aquery(query, param=param)
+    answer = str(raw or "")
+
+    # LightRAG naive returns no-context when LLM is too weak;
+    # fall back to returning retrieved chunks directly.
+    if "no-context" in answer.lower() or not answer.strip():
+        chunks = await _retrieve_chunks_directly(query, top_k)
+        if chunks:
+            answer = "Không đủ dữ liệu để trả lời đầy đủ. " \
+                     "Dưới đây là các đoạn liên quan nhất:\n\n" + \
+                     "\n\n---\n\n".join(chunks)
+        else:
+            answer = "Không tìm thấy nội dung liên quan."
+
+    return {"answer": answer, "citations": []}
+
+
+async def _retrieve_chunks_directly(query: str, top_k: int = 5) -> list[str]:
+    """Directly retrieve chunks from LightRAG's vector store (no LLM needed)."""
+    try:
+        rag = await get_rag()
+        from lightrag.base import QueryParam as QP
+        param = QueryParam(mode="naive", top_k=top_k, chunk_top_k=top_k, enable_rerank=False, only_need_context=True)
+        context = await rag.aquery(query, param=param)
+        if context and "no-context" not in str(context).lower():
+            return [str(context)]
+    except Exception:
+        pass
+    return []

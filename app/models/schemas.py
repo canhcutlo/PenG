@@ -99,7 +99,7 @@ class QueryResponse(BaseModel):
 
 
 class QuizQuestion(BaseModel):
-    id: int
+    id: int | None = None
     question: str
     options: list[str]
     correct_index: int
