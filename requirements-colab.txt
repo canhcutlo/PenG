@@ -41,6 +41,7 @@ sentence-transformers>=3.0
 # Colab tunneling
 pyngrok>=7.0
 nest-asyncio>=1.6
+requests>=2.31
 
 # Testing
 pytest>=8.0

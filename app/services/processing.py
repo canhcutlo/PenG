@@ -54,4 +54,4 @@ async def process_document(doc_id: str, job_id: str):
         logger.error("Processing failed for doc %s: %s", doc_id, error_message)
         update_document_status(doc_id, "failed")
         update_job(job_id, "failed", progress=0, error_message=error_message)
-        raise
+        # DO NOT re-raise — background task must never crash the server
