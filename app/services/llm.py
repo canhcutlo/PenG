@@ -61,7 +61,7 @@ def _get_llm():
             settings.llm_model,
             quantization_config=bnb_config,
             device_map="auto" if torch.cuda.is_available() else "cpu",
-            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+            dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
         )
     return _llm_model, _llm_tokenizer
 
