@@ -353,7 +353,7 @@ Mỗi cập nhật phải ghi:
 | 2026-08-01 | Architect Agent / OpenCode | Phase 5 | Viết 8 tests end-to-end: upload → job → quiz submit → history | PASS | 41/41 unit test pass |
 | 2026-08-01 | Architect Agent / OpenCode | Phase 5 | Sửa bug: duplicate upload trả job_id rỗng (document table không có job_id) → tạo job mới cho duplicate | PASS | |
 | 2026-08-01 | Frontend Agent / OpenCode | Phase 6 | Tạo `static/index.html` hoàn chỉnh: 5 tabs (Upload, Query, Quiz, Mindmap, History), markmap CDN, drag-drop upload, job polling, quiz vanilla JS, responsive, tiếng Việt, copy clipboard | PASS | 927 dòng, 42KB; không localhost, không hardcoded URL; TestClient verify tất cả tabs & features |
-| 2026-08-01 | Frontend Agent / OpenCode | Phase 6 | Tạo `static/index.html` hoàn chỉnh: 5 tabs (Upload, Query, Quiz, Mindmap, History), markmap CDN, drag-drop upload, job polling, quiz vanilla JS, responsive, tiếng Việt, copy clipboard | PASS | 927 dòng, 42KB; không localhost, không hardcoded URL; TestClient verify tất cả tabs & features |
+| 2026-08-01 | Architect Agent / OpenCode | Phase 7 | Git init, commit, push lên GitHub + cập nhật notebook Colab | PASS | https://github.com/canhcutlo/PenG.git; tất cả file đã push; notebook có checklist verification |
 
 ### Mẫu bản ghi
 
