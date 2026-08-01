@@ -89,16 +89,26 @@ async def complete(prompt: str, system_prompt: str | None = None, max_new_tokens
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": prompt})
 
-    text = tokenizer.apply_chat_template(messages, tokenize=False)
+    text = tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True
+    )
     inputs = tokenizer(text, return_tensors="pt").to(model.device)
 
-    outputs = model.generate(**inputs, max_new_tokens=max_new_tokens, temperature=0.3)
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    input_len = inputs.input_ids.shape[1]
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=max_new_tokens,
+        temperature=0.3,
+        do_sample=True,
+    )
+    # Decode only newly generated tokens (skip the prompt prefix)
+    response_ids = outputs[0][input_len:]
+    response = tokenizer.decode(response_ids, skip_special_tokens=True)
 
-    # Extract assistant response after the chat template markers
-    marker = "assistant"
-    if marker in response:
-        response = response.split(marker)[-1].strip()
+    # Some models still include template markers; strip them
+    for marker in ["assistant", "<|im_start|>assistant", "<|im_end|>", "<|endoftext|>"]:
+        if marker in response:
+            response = response.split(marker)[-1].strip()
 
     return response
 

@@ -35,9 +35,9 @@
 | STT | faster-whisper | Model `base`, dùng CUDA nếu có |
 | OCR | Surya (Colab/Python 3.11) / pytesseract / EasyOCR + PyMuPDF + Pillow | Surya không hỗ trợ Python 3.14 |
 | Video | scenedetect + MoviePy | Keyframe extraction + OCR |
-| RAG | LightRAG (`lightrag-hku`) | Kết hợp ChromaDB |
-| Vector DB | ChromaDB | Persistent storage |
-| LLM | Qwen2-7B / Llama-3-8B | 4-bit quantize trên Colab T4 |
+| RAG | LightRAG (`lightrag-hku`) | Naive mode (vector-only), không cần graph |
+| Vector DB | NanoVectorDB (file-based) | Mặc định trong LightRAG 1.5.5 |
+| LLM | Qwen2.5-3B-Instruct (mặc định) / Llama-3.2-3B | 4-bit quantize trên Colab T4 |
 | Structured Output | Instructor | Sinh quiz, summary |
 | Mindmap | Markmap (`markmap-lib`) | Render markdown → mindmap |
 | Quiz UI | react-quiz-component | React 19 component |

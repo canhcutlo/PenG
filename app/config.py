@@ -17,7 +17,9 @@ class Settings(BaseSettings):
     sqlite_path: Path = Path("peng_history.db")
 
     # LLM
-    llm_model: str = "Qwen/Qwen2-7B-Instruct"  # or "meta-llama/Meta-Llama-3-8B-Instruct"
+    # Colab T4 recommendation: Qwen/Qwen2.5-3B-Instruct (~6GB 4-bit)
+    # Alternatives: Qwen/Qwen2.5-7B-Instruct (needs more VRAM), meta-llama/Llama-3.2-3B-Instruct
+    llm_model: str = "Qwen/Qwen2.5-3B-Instruct"
     llm_device: str = "cuda"
     llm_quantize: bool = True  # 4-bit for Colab T4
     use_instructor: bool = False  # True only when OpenAI-compatible endpoint configured

@@ -354,6 +354,10 @@ Mỗi cập nhật phải ghi:
 | 2026-08-01 | Architect Agent / OpenCode | Phase 5 | Sửa bug: duplicate upload trả job_id rỗng (document table không có job_id) → tạo job mới cho duplicate | PASS | |
 | 2026-08-01 | Frontend Agent / OpenCode | Phase 6 | Tạo `static/index.html` hoàn chỉnh: 5 tabs (Upload, Query, Quiz, Mindmap, History), markmap CDN, drag-drop upload, job polling, quiz vanilla JS, responsive, tiếng Việt, copy clipboard | PASS | 927 dòng, 42KB; không localhost, không hardcoded URL; TestClient verify tất cả tabs & features |
 | 2026-08-01 | Architect Agent / OpenCode | Phase 7 | Git init, commit, push lên GitHub + cập nhật notebook Colab | PASS | https://github.com/canhcutlo/PenG.git; tất cả file đã push; notebook có checklist verification |
+| 2026-08-02 | Architect Agent / OpenCode | Fix | Quiz `id` field required: đổi `int` → `int \| None = None`, router tự gán id | PASS | Quiz generate không còn fail validation |
+| 2026-08-02 | Architect Agent / OpenCode | Fix | Query fallback khi model yếu: nếu LightRAG trả "no-context", lấy raw chunks trực tiếp | PASS | Người dùng vẫn thấy nội dung thay vì lỗi |
+| 2026-08-02 | Architect Agent / OpenCode | Fix | Mindmap CSS: container height 600px, max-height 70vh, SVG 100%, resize vertical | PASS | Kéo thả thay đổi kích thước được |
+| 2026-08-02 | Architect Agent / OpenCode | Model | Chuyển mặc định sang Qwen2.5-3B-Instruct (~6GB 4-bit); sửa `apply_chat_template` + `add_generation_prompt=True` | PASS | Decode chỉ phần sinh mới, trích assistant chính xác hơn |
 
 ### Mẫu bản ghi
 
