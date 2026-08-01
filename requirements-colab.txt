@@ -15,11 +15,11 @@ faster-whisper>=1.0
 # ctranslate2==3.24.0
 
 # OCR
-surya-ocr>=0.4  # Colab uses Python 3.11, Surya works
+surya-ocr>=0.4  # Colab Python 3.12 works with Surya (needs Pillow<11)
 easyocr>=1.7
 pytesseract>=0.3
 pymupdf>=1.24
-Pillow>=11.0
+Pillow>=10.0,<11  # Surya-ocr requires pillow<11; Colab Python 3.12 doesn't need Pillow 11+
 
 # Video
 moviepy>=2.0

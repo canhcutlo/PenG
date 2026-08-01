@@ -15,7 +15,9 @@ pip install -r requirements.txt
 - **"Unlimited-OCR" does not exist** as a library. **Surya OCR** (`pip install surya`) works on Python <=3.11. On Python 3.14+ use **pytesseract** or **EasyOCR** as the default OCR engine. `pymupdf` handles PDFs and `Pillow` handles images.
 - **CUDA**: faster-whisper needs CUDA 12 + cuDNN 9 (via ctranslate2 >=4.5). On Colab T4, pin `ctranslate2==3.24.0` if CUDA 11 is detected.
 - **MoviePy v2** has breaking changes from v1; this project uses v2 (`pip install moviepy`).
-- **Pillow** must be >=11.0 for Python 3.14+ support.
+- **Surya-ocr requires Pillow<11**. Conflict with `Pillow>=11.0` (needed for Python 3.14). Solution:
+  - `requirements.txt`: `Pillow>=11.0` (local dev, Python 3.14). Do NOT install `surya-ocr` here.
+  - `requirements-colab.txt`: `Pillow>=10.0,<11` (Colab, Python 3.12). Surya works on Colab.
 
 ## Architecture
 
