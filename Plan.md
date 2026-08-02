@@ -360,6 +360,7 @@ Mỗi cập nhật phải ghi:
 | 2026-08-02 | Architect Agent / OpenCode | Model | Chuyển mặc định sang Qwen2.5-3B-Instruct (~6GB 4-bit); sửa `apply_chat_template` + `add_generation_prompt=True` | PASS | Decode chỉ phần sinh mới, trích assistant chính xác hơn |
 | 2026-08-02 | Architect Agent / OpenCode | Fix | Upload job status qua ngrok: chuyển extraction/indexing sang threadpool bằng `process_document_sync`; frontend retry transient lỗi polling; duplicate upload cũng enqueue job | PASS | `compileall`, notebook JSON validation và 19 API/e2e tests pass |
 | 2026-08-02 | Architect Agent / OpenCode | Notebook | Sửa Quick test không gửi category không hợp lệ `document`; chỉ upload PDF có thật trong `/content` | PASS | Cell 7 không còn tạo request sai schema |
+| 2026-08-02 | Architect Agent / OpenCode | Frontend | Thêm nút tải mindmap dạng Markdown và SVG từ kết quả Markmap hiện tại | PASS | Không gọi lại model; export trực tiếp từ nội dung/API và SVG đang render |
 
 ### Mẫu bản ghi
 
