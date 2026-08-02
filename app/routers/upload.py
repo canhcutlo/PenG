@@ -10,7 +10,7 @@ from app.db.sqlite_store import (
     get_job,
 )
 from app.services.file_storage import validate_upload, save_upload, compute_checksum
-from app.services.processing import process_document
+from app.services.processing import process_document_sync
 from app.config import settings
 from typing import Annotated
 
@@ -45,6 +45,10 @@ async def upload_file(
         # Duplicate content found — create a new job for re-indexing
         dup_job_id = uuid.uuid4().hex[:12]
         insert_job(dup_job_id, existing["doc_id"], "extract")
+        if settings.process_on_upload:
+            background_tasks.add_task(
+                process_document_sync, existing["doc_id"], dup_job_id
+            )
         return UploadResponse(
             doc_id=existing["doc_id"],
             job_id=dup_job_id,
@@ -59,7 +63,7 @@ async def upload_file(
 
     # Start background processing unless disabled
     if settings.process_on_upload:
-        background_tasks.add_task(process_document, doc_id, job_id)
+        background_tasks.add_task(process_document_sync, doc_id, job_id)
 
     return UploadResponse(
         doc_id=doc["doc_id"],

@@ -572,9 +572,11 @@
 
     function pollJob(jobId) {
         if (pollInterval) clearInterval(pollInterval);
+        let transientFailures = 0;
         pollInterval = setInterval(async () => {
             try {
                 const job = await apiFetch(`/api/jobs/${jobId}`);
+                transientFailures = 0;
                 progressFill.style.width = `${job.progress}%`;
                 if (job.status === "completed") {
                     progressText.textContent = "Hoàn tất!";
@@ -588,12 +590,20 @@
                     progressText.textContent = `Đang xử lý... (${job.progress}%)`;
                     progressText.className = "status-text";
                 }
-            } catch {
-                progressText.textContent = "Không thể lấy trạng thái job";
-                progressText.className = "status-text error";
-                clearInterval(pollInterval);
+            } catch (err) {
+                // ngrok can briefly return 502/504 while the worker is busy;
+                // keep polling before showing a permanent failure.
+                transientFailures += 1;
+                if (transientFailures >= 5) {
+                    progressText.textContent = `Không thể lấy trạng thái job: ${err.message}`;
+                    progressText.className = "status-text error";
+                    clearInterval(pollInterval);
+                } else {
+                    progressText.textContent = `Đang kết nối lại... (${transientFailures}/5)`;
+                    progressText.className = "status-text";
+                }
             }
-        }, 2000);
+        }, 1500);
     }
 
     /* ═══════════════════════════════════════════════════════════

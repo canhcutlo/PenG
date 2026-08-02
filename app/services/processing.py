@@ -1,4 +1,5 @@
 """Background processing for uploaded documents."""
+import asyncio
 import logging
 from app.db.sqlite_store import (
     update_job,
@@ -55,3 +56,14 @@ async def process_document(doc_id: str, job_id: str):
         update_document_status(doc_id, "failed")
         update_job(job_id, "failed", progress=0, error_message=error_message)
         # DO NOT re-raise — background task must never crash the server
+
+
+def process_document_sync(doc_id: str, job_id: str):
+    """Run processing from FastAPI's threadpool.
+
+    ``BackgroundTasks`` executes an async callable on the event loop. Media
+    extraction and LightRAG indexing contain blocking CPU/file operations, so
+    running them there prevents ``GET /api/jobs/{job_id}`` from responding.
+    A synchronous wrapper makes Starlette use its worker threadpool instead.
+    """
+    asyncio.run(process_document(doc_id, job_id))
