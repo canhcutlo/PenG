@@ -16,7 +16,6 @@ from app.db.sqlite_store import init_sqlite
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings.upload_dir.mkdir(exist_ok=True)
-    settings.chroma_dir.mkdir(exist_ok=True)
     init_sqlite()
     yield
 

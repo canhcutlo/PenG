@@ -13,7 +13,6 @@ class Settings(BaseSettings):
 
     # Paths
     upload_dir: Path = Path("uploads")
-    chroma_dir: Path = Path("chroma_data")
     sqlite_path: Path = Path("peng_history.db")
 
     # LLM
@@ -41,9 +40,6 @@ class Settings(BaseSettings):
     # Server
     host: str = "0.0.0.0"
     port: int = 8000
-
-    # ChromaDB
-    chroma_collection_name: str = "learning_materials"
 
     # Upload limits
     max_upload_size_mb: int = 500

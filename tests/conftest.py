@@ -21,6 +21,5 @@ def setup_db():
     if settings.upload_dir.exists():
         shutil.rmtree(settings.upload_dir)
     settings.upload_dir.mkdir(exist_ok=True)
-    settings.chroma_dir.mkdir(exist_ok=True)
     init_sqlite()
     yield

@@ -23,7 +23,6 @@ opencv-python-headless>=4.9
 
 # RAG & Vector DB
 lightrag-hku==1.5.5  # pinned; ChromaDB deprecated in 1.5.5, default NanoVectorDB
-chromadb>=0.5
 
 # LLM & Structured Output
 instructor>=1.0

@@ -8,12 +8,22 @@ build/
 venv/
 .env
 
+# Project-private agent/orchestration files
+.opencode/
+AGENTS.md
+Plan.md
+opencode.json
+
 # ChromaDB
 chroma_data/
+lightrag_data/
 
 # SQLite
 *.db
 *.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Upload temp
 uploads/
@@ -25,6 +35,11 @@ temp/
 
 # Colab
 .ipynb_checkpoints/
+
+# Test/runtime caches
+.pytest_cache/
+.cache/
+*.log
 
 # Node (for markmap/quiz frontend)
 node_modules/
