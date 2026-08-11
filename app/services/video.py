@@ -8,7 +8,7 @@ from scenedetect import FrameTimecode
 from app.services.ocr import ocr_image
 from app.config import settings
 
-MAX_KEYFRAMES = 20  # safety cap for long videos
+MAX_KEYFRAMES = 20
 
 
 async def analyze_video(video_path: str) -> dict:
@@ -22,14 +22,12 @@ async def analyze_video(video_path: str) -> dict:
 
     scene_list = detect(str(video_path), AdaptiveDetector())
 
-    # Extract keyframes
     keyframe_dir = settings.upload_dir / "keyframes" / video_path.stem
     keyframe_dir.mkdir(parents=True, exist_ok=True)
 
     clip = VideoFileClip(str(video_path))
     duration = clip.duration
 
-    # If no scenes detected, sample evenly
     if not scene_list:
         sample_count = min(5, max(1, int(duration / 10)))
         scene_list = _sample_timecodes(clip, sample_count)
@@ -57,7 +55,6 @@ async def analyze_video(video_path: str) -> dict:
 
     clip.close()
 
-    # Cleanup empty dir
     try:
         keyframe_dir.rmdir()
     except OSError:

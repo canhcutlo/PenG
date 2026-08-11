@@ -68,7 +68,6 @@ def init_sqlite():
     conn.close()
 
 
-# ─── Document CRUD ─────────────────────────────────────────────────────────
 
 
 def insert_document(
@@ -121,7 +120,6 @@ def update_document_status(doc_id: str, status: str):
     conn.close()
 
 
-# ─── Job CRUD ──────────────────────────────────────────────────────────────
 
 
 def insert_job(job_id: str, doc_id: str, job_type: str) -> dict:
@@ -162,7 +160,6 @@ def update_job(job_id: str, status: str, progress: int = 0, error_message: str |
     conn.close()
 
 
-# ─── Activity CRUD ─────────────────────────────────────────────────────────
 
 
 def log_activity(doc_id: str, action: str, metadata: dict | None = None):
@@ -184,7 +181,6 @@ def get_activities(limit: int = 20) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-# ─── Quiz CRUD ─────────────────────────────────────────────────────────────
 
 
 def insert_quiz(quiz_id: str, doc_id: str, questions: list[dict]):

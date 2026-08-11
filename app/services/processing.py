@@ -27,14 +27,12 @@ async def process_document(doc_id: str, job_id: str):
         file_path = get_document_file_path(doc_id)
         category = doc["category"]
 
-        # 1. Extract text
         update_job(job_id, "processing", progress=30)
         result = await extract(str(file_path), category)
         text = get_text_from_result(result)
         if not text.strip():
             raise ValueError("No text extracted from document")
 
-        # 2. Index into LightRAG
         if settings.index_on_upload:
             update_job(job_id, "processing", progress=60)
             from app.services.rag import index_document
@@ -55,7 +53,6 @@ async def process_document(doc_id: str, job_id: str):
         logger.error("Processing failed for doc %s: %s", doc_id, error_message)
         update_document_status(doc_id, "failed")
         update_job(job_id, "failed", progress=0, error_message=error_message)
-        # DO NOT re-raise — background task must never crash the server
 
 
 def process_document_sync(doc_id: str, job_id: str):

@@ -6,178 +6,308 @@
     <title>PenG - AI Học Tập</title>
     <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.17.0"></script>
     <style>
-        /* ── Reset & Base ─────────────────────────────────────────── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-            --bg: #0f1117;
-            --surface: #1a1d27;
-            --surface2: #242836;
+            --bg: #0b0d13;
+            --bg-elevated: #111318;
+            --surface: #161922;
+            --surface2: #1e2230;
+            --surface3: #282d3e;
             --border: #2e3348;
-            --text: #e2e4ed;
-            --text-dim: #8b8fa3;
-            --accent: #6c63ff;
-            --accent-hover: #5a52e0;
+            --border-light: #3a4060;
+            --text: #e8eaf0;
+            --text-secondary: #9ca3b8;
+            --text-muted: #6b7194;
+            --accent: #7c73ff;
+            --accent-hover: #6a62ee;
+            --accent-glow: rgba(124,115,255,.25);
+            --accent-soft: rgba(124,115,255,.1);
             --success: #34d399;
+            --success-bg: rgba(52,211,153,.1);
             --warning: #fbbf24;
+            --warning-bg: rgba(251,191,36,.1);
             --error: #f87171;
-            --radius: 10px;
-            --shadow: 0 4px 24px rgba(0,0,0,.35);
+            --error-bg: rgba(248,113,113,.1);
+            --info: #818cf8;
+            --info-bg: rgba(129,140,248,.1);
+            --radius-sm: 6px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+            --shadow: 0 4px 24px rgba(0,0,0,.4);
+            --shadow-lg: 0 8px 40px rgba(0,0,0,.5);
+            --space-2: 4px;
+            --space-3: 8px;
+            --space-4: 12px;
+            --space-5: 16px;
+            --space-6: 20px;
+            --space-8: 32px;
+            --transition: .2s ease;
         }
-        html { font-size: 15px; }
+        html { font-size: 15px; scroll-behavior: smooth; }
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: var(--bg);
             color: var(--text);
-            line-height: 1.6;
+            line-height: 1.65;
             min-height: 100vh;
         }
         a { color: var(--accent); text-decoration: none; }
         a:hover { text-decoration: underline; }
 
-        /* ── Layout ───────────────────────────────────────────────── */
-        .container { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 var(--space-5); }
+
+        .workspace-hero {
+            display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(220px, .8fr);
+            gap: var(--space-8); align-items: end; padding: 40px 0 28px;
+        }
+        .workspace-kicker {
+            color: var(--accent); font-size: .7rem; font-weight: 700;
+            letter-spacing: .14em; text-transform: uppercase; margin-bottom: 10px;
+        }
+        .workspace-hero h1 {
+            max-width: 620px; font-size: clamp(2rem, 5vw, 3.4rem);
+            line-height: 1.05; letter-spacing: -.06em; font-weight: 800;
+        }
+        .workspace-hero h1 span { color: var(--accent); }
+        .workspace-hero p {
+            max-width: 560px; color: var(--text-secondary); margin-top: 14px;
+            font-size: .98rem;
+        }
+        .workspace-note {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: var(--space-5);
+            box-shadow: var(--shadow-sm);
+        }
+        .workspace-note strong { display: block; font-size: 1.05rem; margin-bottom: 4px; }
+        .workspace-note span { color: var(--text-secondary); font-size: .8rem; }
+        .workspace-note .note-mark {
+            display: inline-flex; width: 30px; height: 30px; align-items: center;
+            justify-content: center; border-radius: 9px; background: var(--accent-soft);
+            color: var(--accent); font-weight: 800; margin-bottom: 12px;
+        }
+
         header {
-            background: var(--surface);
+            background: var(--bg-elevated);
             border-bottom: 1px solid var(--border);
-            padding: 16px 0;
+            padding: var(--space-5) 0;
             position: sticky; top: 0; z-index: 100;
+            backdrop-filter: blur(12px);
+            background: rgba(17,19,24,.85);
         }
         header .container {
             display: flex; align-items: center; justify-content: space-between;
-            flex-wrap: wrap; gap: 8px;
+            flex-wrap: wrap; gap: var(--space-3);
         }
-        .logo { font-size: 1.4rem; font-weight: 700; letter-spacing: -.5px; }
-        .logo span { color: var(--accent); }
-        .health-badge {
-            font-size: .75rem; padding: 3px 10px; border-radius: 20px;
-            background: var(--surface2); color: var(--text-dim);
+        .logo {
+            font-size: 1.5rem; font-weight: 800; letter-spacing: -.5px;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        .health-badge.ok { background: #064e3b; color: var(--success); }
-        .health-badge.err { background: #450a0a; color: var(--error); }
+        .system-status {
+            display: flex; align-items: center; gap: var(--space-3);
+            font-size: .8rem; color: var(--text-secondary);
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--text-muted);
+            transition: background var(--transition);
+        }
+        .status-dot.ok { background: var(--success); box-shadow: 0 0 8px var(--success-bg); }
+        .status-dot.err { background: var(--error); }
+        .status-dot.checking { animation: pulse 1.5s ease infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
 
-        /* ── Tabs ─────────────────────────────────────────────────── */
         .tabs {
-            display: flex; gap: 4px; padding: 12px 0 0;
+            display: flex; gap: var(--space-2); padding: var(--space-4) 0 0;
             overflow-x: auto; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
         }
+        .tabs::-webkit-scrollbar { display: none; }
         .tab-btn {
-            padding: 8px 18px; border: none; border-radius: var(--radius) var(--radius) 0 0;
-            background: var(--surface); color: var(--text-dim); cursor: pointer;
-            font-size: .9rem; font-weight: 500; white-space: nowrap;
-            transition: background .2s, color .2s;
+            padding: var(--space-3) var(--space-5); border: none; border-radius: var(--radius-sm);
+            background: transparent; color: var(--text-secondary); cursor: pointer;
+            font-size: .875rem; font-weight: 500; white-space: nowrap;
+            transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+            position: relative;
         }
         .tab-btn:hover { background: var(--surface2); color: var(--text); }
-        .tab-btn.active { background: var(--accent); color: #fff; }
-        .tab-panel { display: none; padding: 24px 0 48px; }
-        .tab-panel.active { display: block; }
+        .tab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .tab-btn.active {
+            background: var(--accent-soft); color: var(--accent);
+            font-weight: 600;
+        }
+        .tab-btn.active::after {
+            content: ''; position: absolute; bottom: -1px; left: 20%; right: 20%;
+            height: 2px; background: var(--accent); border-radius: 1px;
+        }
+        .tab-panel { display: none; padding: var(--space-6) 0 var(--space-8); }
+        .tab-panel.active { display: block; animation: fadeIn .25s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-        /* ── Cards ────────────────────────────────────────────────── */
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: var(--shadow);
+            padding: var(--space-6);
+            margin-bottom: var(--space-5);
+            box-shadow: var(--shadow-sm);
+            transition: border-color var(--transition), box-shadow var(--transition);
         }
-        .card h2 { font-size: 1.1rem; margin-bottom: 12px; }
-        .card h3 { font-size: .95rem; margin: 12px 0 6px; color: var(--text-dim); }
+        .card:hover { border-color: var(--border-light); }
+        .card h2 {
+            font-size: 1.15rem; margin-bottom: var(--space-5);
+            font-weight: 700; letter-spacing: -.3px;
+        }
+        .card h3 { font-size: .9rem; margin: var(--space-4) 0 var(--space-2); color: var(--text-secondary); font-weight: 600; }
 
-        /* ── Form elements ────────────────────────────────────────── */
-        label { display: block; font-size: .85rem; color: var(--text-dim); margin-bottom: 4px; }
+        label { display: block; font-size: .825rem; color: var(--text-secondary); margin-bottom: var(--space-2); font-weight: 500; }
         input[type="text"], input[type="number"], select, textarea {
-            width: 100%; padding: 10px 12px; border: 1px solid var(--border);
-            border-radius: 8px; background: var(--surface2); color: var(--text);
-            font-size: .9rem; outline: none; transition: border .2s;
+            width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+            border-radius: var(--radius-sm); background: var(--surface2); color: var(--text);
+            font-size: .875rem; outline: none; transition: border var(--transition), box-shadow var(--transition);
+            font-family: inherit;
         }
-        input:focus, select:focus, textarea:focus { border-color: var(--accent); }
-        textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        input[readonly] { opacity: .7; cursor: default; }
+        textarea { resize: vertical; min-height: 80px; }
+        select { cursor: pointer; }
 
         .btn {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 10px 20px; border: none; border-radius: 8px;
-            background: var(--accent); color: #fff; font-size: .9rem;
-            font-weight: 600; cursor: pointer; transition: background .2s;
+            display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+            padding: 10px 22px; border: none; border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--accent), #6a62ee);
+            color: #fff; font-size: .875rem; font-weight: 600;
+            cursor: pointer; transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition);
         }
-        .btn:hover { background: var(--accent-hover); }
-        .btn:disabled { opacity: .5; cursor: not-allowed; }
-        .btn.secondary { background: var(--surface2); color: var(--text); }
-        .btn.secondary:hover { background: var(--border); }
+        .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow); }
+        .btn:active:not(:disabled) { transform: translateY(0); }
+        .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn.secondary {
+            background: var(--surface2); color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn.secondary:hover:not(:disabled) { background: var(--surface3); box-shadow: none; transform: none; }
+        .btn.ghost {
+            background: transparent; color: var(--accent);
+            border: 1px solid var(--border); padding: 8px 16px;
+        }
+        .btn.ghost:hover:not(:disabled) { background: var(--accent-soft); box-shadow: none; transform: none; }
         .btn.danger { background: var(--error); }
-        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+        .btn.danger:hover:not(:disabled) { box-shadow: 0 4px 16px var(--error-bg); }
+        .btn-group { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-4); }
 
-        .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .form-row { display: flex; gap: var(--space-4); flex-wrap: wrap; }
         .form-row > * { flex: 1; min-width: 180px; }
 
-        /* ── Drop zone ────────────────────────────────────────────── */
         .drop-zone {
             border: 2px dashed var(--border);
             border-radius: var(--radius);
-            padding: 32px 16px;
+            padding: var(--space-8) var(--space-6);
             text-align: center;
-            color: var(--text-dim);
-            transition: border-color .2s, background .2s;
+            color: var(--text-secondary);
+            transition: border-color var(--transition), background var(--transition), transform var(--transition);
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
         }
-        .drop-zone.dragover { border-color: var(--accent); background: rgba(108,99,255,.08); }
-        .drop-zone p { margin-bottom: 8px; }
-        .drop-zone .icon { font-size: 2rem; margin-bottom: 8px; }
+        .drop-zone:hover { border-color: var(--border-light); background: var(--surface2); }
+        .drop-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+            transform: scale(1.01);
+        }
+        .drop-zone.has-file {
+            border-style: solid;
+            border-color: var(--success);
+            background: var(--success-bg);
+        }
+        .drop-zone .icon { font-size: 2.5rem; margin-bottom: var(--space-3); display: block; }
+        .drop-zone p { margin-bottom: var(--space-2); }
+        .file-info {
+            display: none; align-items: center; justify-content: center; gap: var(--space-3);
+            margin-top: var(--space-4); padding: var(--space-3) var(--space-4);
+            background: var(--surface2); border-radius: var(--radius-sm);
+            font-size: .85rem; color: var(--text);
+        }
+        .file-info.visible { display: inline-flex; }
+        .file-info .file-name { font-weight: 600; }
+        .file-info .file-size { color: var(--text-muted); }
 
-        /* ── Progress ─────────────────────────────────────────────── */
         .progress-bar {
-            height: 8px; background: var(--surface2); border-radius: 4px;
-            overflow: hidden; margin: 8px 0;
+            height: 6px; background: var(--surface2); border-radius: 3px;
+            overflow: hidden; margin: var(--space-3) 0;
         }
         .progress-bar .fill {
-            height: 100%; background: var(--accent); border-radius: 4px;
-            transition: width .3s;
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #a78bfa);
+            border-radius: 3px;
+            transition: width .4s ease;
+            position: relative;
         }
-        .status-text { font-size: .8rem; color: var(--text-dim); }
+        .progress-bar .fill::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
+            animation: shimmer 1.5s ease infinite;
+        }
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+        .status-text { font-size: .8rem; color: var(--text-muted); }
         .status-text.success { color: var(--success); }
         .status-text.error { color: var(--error); }
+        .status-text.warning { color: var(--warning); }
 
-        /* ── Result blocks ────────────────────────────────────────── */
         .result {
             background: var(--surface2);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 16px;
-            margin-top: 12px;
+            border-radius: var(--radius-sm);
+            padding: var(--space-5);
+            margin-top: var(--space-4);
             white-space: pre-wrap;
             word-break: break-word;
-            font-size: .9rem;
+            font-size: .875rem;
             max-height: 400px;
             overflow-y: auto;
+            line-height: 1.7;
         }
         .citation {
             border-left: 3px solid var(--accent);
-            padding: 8px 12px;
-            margin: 8px 0;
-            background: rgba(108,99,255,.06);
-            border-radius: 0 6px 6px 0;
-            font-size: .85rem;
+            padding: var(--space-3) var(--space-4);
+            margin: var(--space-3) 0;
+            background: var(--accent-soft);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            font-size: .825rem;
         }
-        .citation .meta { color: var(--text-dim); font-size: .75rem; }
+        .citation .meta { color: var(--text-muted); font-size: .75rem; margin-bottom: var(--space-1); }
 
-        /* ── Quiz ─────────────────────────────────────────────────── */
-        .quiz-question { margin-bottom: 20px; }
-        .quiz-question .q-text { font-weight: 600; margin-bottom: 8px; }
+        .quiz-question { margin-bottom: var(--space-5); }
+        .quiz-question .q-text { font-weight: 600; margin-bottom: var(--space-3); font-size: .95rem; }
         .quiz-option {
-            display: block; padding: 10px 14px; margin: 4px 0;
-            border: 1px solid var(--border); border-radius: 8px;
-            cursor: pointer; transition: background .15s, border-color .15s;
+            display: flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-3) var(--space-4); margin: var(--space-2) 0;
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            cursor: pointer; transition: background var(--transition), border-color var(--transition);
+            font-size: .875rem;
         }
-        .quiz-option:hover { background: var(--surface2); }
-        .quiz-option input { margin-right: 8px; }
-        .quiz-option.correct { border-color: var(--success); background: rgba(52,211,153,.1); }
-        .quiz-option.wrong { border-color: var(--error); background: rgba(248,113,113,.1); }
+        .quiz-option:hover { background: var(--surface2); border-color: var(--border-light); }
+        .quiz-option input[type="radio"] { accent-color: var(--accent); }
+        .quiz-option.selected { border-color: var(--accent); background: var(--accent-soft); }
+        .quiz-option.correct { border-color: var(--success); background: var(--success-bg); }
+        .quiz-option.wrong { border-color: var(--error); background: var(--error-bg); }
         .quiz-score {
-            text-align: center; padding: 20px;
-            font-size: 1.3rem; font-weight: 700;
+            text-align: center; padding: var(--space-6);
+            font-size: 1.2rem; font-weight: 700;
         }
-        .quiz-score .pct { color: var(--accent); font-size: 2rem; }
+        .quiz-score .pct { font-size: 2.5rem; font-weight: 800; }
+        .quiz-score .pct.high { color: var(--success); }
+        .quiz-score .pct.mid { color: var(--warning); }
+        .quiz-score .pct.low { color: var(--error); }
 
-        /* ── Mindmap ──────────────────────────────────────────────── */
         .mindmap-container {
             width: 100%;
             height: 600px;
@@ -189,129 +319,173 @@
             resize: vertical;
             position: relative;
         }
-        .mindmap-container .markmap {
-            width: 100%;
-            height: 100%;
-        }
-        .mindmap-container svg {
-            width: 100%;
-            height: 100%;
-            max-width: 100%;
-        }
-        .mindmap-controls {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-        .mindmap-controls button {
-            padding: 4px 12px;
-            font-size: 0.85rem;
-        }
-        .download-link {
-            display: inline-block;
-            text-decoration: none;
-            cursor: pointer;
-        }
+        .mindmap-container .markmap { width: 100%; height: 100%; }
+        .mindmap-container svg { width: 100%; height: 100%; max-width: 100%; }
+        .mindmap-controls { display: flex; gap: var(--space-3); margin-bottom: var(--space-3); flex-wrap: wrap; }
+        .mindmap-controls button { padding: var(--space-2) var(--space-4); font-size: .825rem; }
         .mindmap-md {
             background: var(--surface2);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 12px;
-            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            border-radius: var(--radius-sm);
+            padding: var(--space-4);
+            font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
             font-size: .8rem;
             white-space: pre-wrap;
             word-break: break-word;
             max-height: 300px;
             overflow-y: auto;
-            margin-top: 8px;
+            margin-top: var(--space-3);
+            line-height: 1.6;
         }
 
-        /* ── Table ────────────────────────────────────────────────── */
-        .tbl-wrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-        th { color: var(--text-dim); font-weight: 600; }
-        tr:hover td { background: var(--surface2); }
+        .tbl-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; font-size: .825rem; }
+        th, td { padding: var(--space-3) var(--space-4); text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-secondary); font-weight: 600; background: var(--surface2); position: sticky; top: 0; }
+        td { color: var(--text); }
+        tbody tr { transition: background var(--transition); }
+        tbody tr:hover { background: var(--surface2); }
+        tbody tr:last-child td { border-bottom: none; }
 
-        /* ── Toast / Alert ────────────────────────────────────────── */
         .alert {
-            padding: 12px 16px; border-radius: 8px; margin: 12px 0;
-            font-size: .85rem;
+            padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;
+            font-size: .825rem; display: flex; align-items: flex-start; gap: var(--space-3);
+            animation: slideIn .2s ease;
         }
-        .alert.error { background: #450a0a; color: var(--error); border: 1px solid #7f1d1d; }
-        .alert.success { background: #064e3b; color: var(--success); border: 1px solid #065f46; }
-        .alert.info { background: #1e1b4b; color: #a5b4fc; border: 1px solid #3730a3; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+        .alert.error { background: var(--error-bg); color: var(--error); border: 1px solid rgba(248,113,113,.2); }
+        .alert.success { background: var(--success-bg); color: var(--success); border: 1px solid rgba(52,211,153,.2); }
+        .alert.info { background: var(--info-bg); color: var(--info); border: 1px solid rgba(129,140,248,.2); }
+        .alert.warning { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(251,191,36,.2); }
 
-        /* ── Spinner ──────────────────────────────────────────────── */
         .spinner {
-            display: inline-block; width: 18px; height: 18px;
+            display: inline-block; width: 16px; height: 16px;
             border: 2px solid var(--border); border-top-color: var(--accent);
-            border-radius: 50%; animation: spin .7s linear infinite;
+            border-radius: 50%; animation: spin .6s linear infinite;
+            flex-shrink: 0;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .loading { display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: .85rem; }
+        .loading { display: flex; align-items: center; gap: var(--space-3); color: var(--text-secondary); font-size: .825rem; }
 
-        /* ── Responsive ───────────────────────────────────────────── */
-        @media (max-width: 600px) {
+        .empty-state {
+            text-align: center; padding: var(--space-8) var(--space-5);
+            color: var(--text-muted);
+        }
+        .empty-state .icon { font-size: 2.5rem; margin-bottom: var(--space-3); display: block; opacity: .5; }
+        .empty-state p { font-size: .875rem; }
+
+        .quick-actions {
+            display: flex; gap: var(--space-3); flex-wrap: wrap;
+            margin-top: var(--space-4); padding-top: var(--space-4);
+            border-top: 1px solid var(--border);
+        }
+        .quick-actions .btn { font-size: .8rem; padding: 8px 14px; }
+
+        .doc-id-display {
+            display: inline-flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-2) var(--space-4);
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); font-family: monospace;
+            font-size: .825rem; color: var(--accent);
+        }
+
+        @media (max-width: 640px) {
             html { font-size: 14px; }
-            .card { padding: 14px; }
-            .tab-btn { padding: 6px 12px; font-size: .8rem; }
+            .container { padding: 0 var(--space-4); }
+            .card { padding: var(--space-5); }
+            .tab-btn { padding: var(--space-2) var(--space-4); font-size: .8rem; }
             .form-row > * { min-width: 100%; }
+            .btn-group { flex-direction: column; }
+            .btn-group .btn { width: 100%; }
+            .mindmap-container { height: 400px; }
+            .quick-actions { flex-direction: column; }
+            .quick-actions .btn { width: 100%; justify-content: center; }
+            .workspace-hero { grid-template-columns: 1fr; gap: var(--space-5); padding: 28px 0 20px; }
+            .workspace-hero h1 { font-size: 2.3rem; }
         }
 
-        /* ── Copy button ──────────────────────────────────────────── */
+        .hidden { display: none !important; }
+        .mt-4 { margin-top: var(--space-2); }
+        .mt-8 { margin-top: var(--space-3); }
+        .mt-12 { margin-top: var(--space-4); }
+        .mt-16 { margin-top: var(--space-5); }
+        .mb-8 { margin-bottom: var(--space-3); }
+        .text-sm { font-size: .8rem; }
+        .text-xs { font-size: .75rem; }
+        .text-dim { color: var(--text-muted); }
+        .text-secondary { color: var(--text-secondary); }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3); }
+        .flex-center { display: flex; align-items: center; gap: var(--space-3); }
+
         .copy-btn {
-            position: relative;
-            display: inline-flex; align-items: center; gap: 4px;
-            padding: 4px 10px; border: 1px solid var(--border);
-            border-radius: 6px; background: var(--surface2);
-            color: var(--text-dim); font-size: .75rem; cursor: pointer;
+            display: inline-flex; align-items: center; gap: var(--space-2);
+            padding: var(--space-2) var(--space-3); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); background: var(--surface2);
+            color: var(--text-secondary); font-size: .75rem; cursor: pointer;
+            transition: border-color var(--transition), color var(--transition), background var(--transition);
         }
-        .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+        .copy-btn:hover { color: var(--text); border-color: var(--accent); background: var(--accent-soft); }
+        .copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
         .copy-btn.copied { color: var(--success); border-color: var(--success); }
 
-        /* ── Utility ──────────────────────────────────────────────── */
-        .hidden { display: none !important; }
-        .mt-8 { margin-top: 8px; }
-        .mt-12 { margin-top: 12px; }
-        .mt-16 { margin-top: 16px; }
-        .mb-8 { margin-bottom: 8px; }
-        .text-sm { font-size: .8rem; }
-        .text-dim { color: var(--text-dim); }
-        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .tag {
+            display: inline-flex; align-items: center; gap: var(--space-2);
+            padding: 2px 10px; border-radius: 20px;
+            font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
+        }
+        .tag.completed { background: var(--success-bg); color: var(--success); }
+        .tag.processing { background: var(--warning-bg); color: var(--warning); }
+        .tag.failed { background: var(--error-bg); color: var(--error); }
+        .tag.queued { background: var(--info-bg); color: var(--info); }
     </style>
 </head>
 <body>
 
-<!-- ═══════════════════ HEADER ═══════════════════ -->
 <header>
     <div class="container">
-        <div class="logo">Pen<span>G</span></div>
-        <div id="healthBadge" class="health-badge">Đang kiểm tra...</div>
+        <div class="logo">PenG</div>
+        <div class="system-status">
+            <span id="statusDot" class="status-dot checking"></span>
+            <span id="healthBadge">Đang kiểm tra...</span>
+        </div>
     </div>
 </header>
 
-<!-- ═══════════════════ TABS ═══════════════════ -->
 <div class="container">
-    <nav class="tabs" role="tablist">
-        <button class="tab-btn active" data-tab="upload" role="tab">Upload</button>
-        <button class="tab-btn" data-tab="query" role="tab">Hỏi đáp</button>
-        <button class="tab-btn" data-tab="quiz" role="tab">Quiz</button>
-        <button class="tab-btn" data-tab="mindmap" role="tab">Mindmap</button>
-        <button class="tab-btn" data-tab="history" role="tab">Lịch sử</button>
+    <nav class="tabs" role="tablist" aria-label="Chức năng chính">
+        <button class="tab-btn active" data-tab="upload" role="tab" aria-selected="true" aria-controls="tab-upload" id="tabBtn-upload" tabindex="0">Upload</button>
+        <button class="tab-btn" data-tab="query" role="tab" aria-selected="false" aria-controls="tab-query" id="tabBtn-query" tabindex="-1">Hỏi đáp</button>
+        <button class="tab-btn" data-tab="quiz" role="tab" aria-selected="false" aria-controls="tab-quiz" id="tabBtn-quiz" tabindex="-1">Quiz</button>
+        <button class="tab-btn" data-tab="mindmap" role="tab" aria-selected="false" aria-controls="tab-mindmap" id="tabBtn-mindmap" tabindex="-1">Mindmap</button>
+        <button class="tab-btn" data-tab="history" role="tab" aria-selected="false" aria-controls="tab-history" id="tabBtn-history" tabindex="-1">Lịch sử</button>
     </nav>
 </div>
 
-<!-- ═══════════════════ UPLOAD TAB ═══════════════════ -->
 <div class="container">
-    <section id="tab-upload" class="tab-panel active">
+    <section class="workspace-hero" aria-labelledby="workspaceTitle">
+        <div>
+            <div class="workspace-kicker">Study workspace</div>
+            <h1 id="workspaceTitle">Học sâu hơn từ mọi tài liệu<span>.</span></h1>
+            <p>Upload nội dung, hỏi đáp, tạo quiz và dựng mindmap trong cùng một không gian học tập.</p>
+        </div>
+        <div class="workspace-note">
+            <span class="note-mark">P</span>
+            <strong>Bắt đầu bằng một tài liệu</strong>
+            <span>PenG sẽ xử lý và chuẩn bị nội dung cho các công cụ học tập.</span>
+        </div>
+    </section>
+    <section id="tab-upload" class="tab-panel active" role="tabpanel" aria-labelledby="tabBtn-upload">
         <div class="card">
             <h2>Upload tài liệu học tập</h2>
-            <div class="drop-zone" id="dropZone">
-                <div class="icon">📁</div>
-                <p>Kéo thả file vào đây hoặc <strong>nhấn để chọn</strong></p>
-                <p class="text-sm text-dim">Hỗ trợ: audio, ảnh, PDF, video (tối đa 500 MB)</p>
+            <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="Khu vực kéo thả hoặc chọn file">
+                <span class="icon">&#128193;</span>
+                <p><strong>Kéo thả file</strong> vào đây hoặc <strong>nhấn để chọn</strong></p>
+                <p class="text-sm text-dim">Hỗ trợ: audio, ảnh, PDF, video &mdash; tối đa 500 MB</p>
                 <input type="file" id="fileInput" hidden>
+                <div class="file-info" id="fileInfo">
+                    <span class="file-name" id="fileName"></span>
+                    <span class="file-size" id="fileSize"></span>
+                </div>
             </div>
             <div class="form-row mt-12">
                 <div>
@@ -332,26 +506,26 @@
                 <button class="btn" id="uploadBtn" disabled>Upload</button>
             </div>
 
-            <!-- Upload result -->
-            <div id="uploadResult" class="hidden mt-16"></div>
+            <div id="uploadResult" class="hidden mt-16" aria-live="polite"></div>
 
-            <!-- Job progress -->
-            <div id="jobProgress" class="hidden mt-16">
-                <h3>Tiến trình xử lý</h3>
+            <div id="jobProgress" class="hidden mt-16" aria-live="polite">
+                <div class="flex-between mb-8">
+                    <h3 style="margin:0">Tiến trình xử lý</h3>
+                    <span class="tag queued" id="jobStatusTag">queued</span>
+                </div>
                 <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
                 <div class="status-text" id="progressText">Đang chờ...</div>
             </div>
         </div>
     </section>
 
-    <!-- ═══════════════════ QUERY TAB ═══════════════════ -->
-    <section id="tab-query" class="tab-panel">
+    <section id="tab-query" class="tab-panel" role="tabpanel" aria-labelledby="tabBtn-query">
         <div class="card">
             <h2>Hỏi đáp với tài liệu</h2>
             <div class="form-row">
                 <div style="flex:3">
                     <label for="queryInput">Câu hỏi</label>
-                    <textarea id="queryInput" placeholder="Ví dụ: Tóm tắt nội dung chính của tài liệu..."></textarea>
+                    <textarea id="queryInput" placeholder="Ví dụ: Tóm tắt nội dung chính của tài liệu..." rows="3"></textarea>
                 </div>
                 <div style="flex:1">
                     <label for="topK">Số kết quả</label>
@@ -362,18 +536,17 @@
                 <button class="btn" id="queryBtn">Hỏi</button>
             </div>
 
-            <div id="queryResult" class="hidden mt-16"></div>
+            <div id="queryResult" class="hidden mt-16" aria-live="polite"></div>
         </div>
     </section>
 
-    <!-- ═══════════════════ QUIZ TAB ═══════════════════ -->
-    <section id="tab-quiz" class="tab-panel">
+    <section id="tab-quiz" class="tab-panel" role="tabpanel" aria-labelledby="tabBtn-quiz">
         <div class="card">
             <h2>Tạo Quiz từ tài liệu</h2>
             <div class="form-row">
                 <div>
                     <label for="quizDocId">Document ID</label>
-                    <input type="text" id="quizDocId" placeholder="Nhập doc_id...">
+                    <input type="text" id="quizDocId" placeholder="Nhập doc_id hoặc upload trước...">
                 </div>
                 <div>
                     <label for="quizNum">Số câu hỏi</label>
@@ -384,49 +557,45 @@
                 <button class="btn" id="generateQuizBtn">Tạo Quiz</button>
             </div>
 
-            <div id="quizArea" class="hidden mt-16"></div>
+            <div id="quizArea" class="hidden mt-16" aria-live="polite"></div>
         </div>
     </section>
 
-    <!-- ═══════════════════ MINDMAP TAB ═══════════════════ -->
-    <section id="tab-mindmap" class="tab-panel">
+    <section id="tab-mindmap" class="tab-panel" role="tabpanel" aria-labelledby="tabBtn-mindmap">
         <div class="card">
             <h2>Mindmap tài liệu</h2>
             <div class="form-row">
                 <div>
                     <label for="mindmapDocId">Document ID</label>
-                    <input type="text" id="mindmapDocId" placeholder="Nhập doc_id...">
+                    <input type="text" id="mindmapDocId" placeholder="Nhập doc_id hoặc upload trước...">
                 </div>
             </div>
             <div class="btn-group">
                 <button class="btn" id="mindmapBtn">Tạo Mindmap</button>
             </div>
 
-            <div id="mindmapArea" class="hidden mt-16"></div>
+            <div id="mindmapArea" class="hidden mt-16" aria-live="polite"></div>
         </div>
     </section>
 
-    <!-- ═══════════════════ HISTORY TAB ═══════════════════ -->
-    <section id="tab-history" class="tab-panel">
+    <section id="tab-history" class="tab-panel" role="tabpanel" aria-labelledby="tabBtn-history">
         <div class="card">
             <div class="flex-between">
-                <h2>Lịch sử hoạt động</h2>
+                <h2 style="margin:0">Lịch sử hoạt động</h2>
                 <button class="btn secondary" id="refreshHistory" style="padding:6px 14px;font-size:.8rem;">Làm mới</button>
             </div>
-            <div id="historyArea" class="mt-12"></div>
+            <div id="historyArea" class="mt-12" aria-live="polite"></div>
         </div>
     </section>
 </div>
 
-<!-- ═══════════════════ SCRIPTS ═══════════════════ -->
 <script>
 (function () {
     "use strict";
 
-    /* ── Helpers ─────────────────────────────────────────────── */
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => document.querySelectorAll(sel);
-    const API = ""; // relative — works with ngrok automatically
+    const API = "";
 
     function el(tag, attrs, ...children) {
         const node = document.createElement(tag);
@@ -446,9 +615,21 @@
     }
 
     function showAlert(container, type, message) {
-        const alert = el("div", { className: `alert ${type}` }, message);
+        if (!container) return;
+        const alert = el("div", { className: `alert ${type}`, role: "alert" }, message);
         container.prepend(alert);
         setTimeout(() => alert.remove(), 6000);
+    }
+
+    function showEmptyState(container, icon, message) {
+        if (!container) return;
+        container.innerHTML = "";
+        container.appendChild(
+            el("div", { className: "empty-state" },
+                el("span", { className: "icon" }, icon),
+                el("p", {}, message)
+            )
+        );
     }
 
     async function apiFetch(url, opts = {}) {
@@ -461,35 +642,65 @@
         return res.json();
     }
 
-    /* ── Health check ────────────────────────────────────────── */
     async function checkHealth() {
         const badge = $("#healthBadge");
+        const dot = $("#statusDot");
         try {
             const data = await apiFetch("/api/health");
-            badge.textContent = data.db === "ok" ? "Hệ thống hoạt động" : "DB lỗi";
-            badge.className = `health-badge ${data.db === "ok" ? "ok" : "err"}`;
+            const ok = data.db === "ok";
+            badge.textContent = ok ? "Hệ thống hoạt động" : "DB lỗi";
+            dot.className = `status-dot ${ok ? "ok" : "err"}`;
         } catch {
             badge.textContent = "Không kết nối được";
-            badge.className = "health-badge err";
+            dot.className = "status-dot err";
         }
     }
     checkHealth();
+    setInterval(checkHealth, 60000);
 
-    /* ── Tab switching ───────────────────────────────────────── */
-    $$(".tab-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            $$(".tab-btn").forEach((b) => b.classList.remove("active"));
-            $$(".tab-panel").forEach((p) => p.classList.remove("active"));
-            btn.classList.add("active");
-            const tab = btn.dataset.tab;
-            $(`#tab-${tab}`).classList.add("active");
-            if (tab === "history") loadHistory();
+    const tabBtns = $$(".tab-btn");
+    const tabPanels = $$(".tab-panel");
+    let currentTabIndex = 0;
+
+    function activateTab(index) {
+        tabBtns.forEach((b, i) => {
+            const isActive = i === index;
+            b.classList.toggle("active", isActive);
+            b.setAttribute("aria-selected", String(isActive));
+            b.tabIndex = isActive ? 0 : -1;
+        });
+        tabPanels.forEach((p, i) => {
+            p.classList.toggle("active", i === index);
+        });
+        currentTabIndex = index;
+        const tab = tabBtns[index].dataset.tab;
+        if (tab === "history") loadHistory();
+    }
+
+    tabBtns.forEach((btn, index) => {
+        btn.addEventListener("click", () => activateTab(index));
+        btn.addEventListener("keydown", (e) => {
+            let newIndex = currentTabIndex;
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                e.preventDefault();
+                newIndex = (currentTabIndex + 1) % tabBtns.length;
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                e.preventDefault();
+                newIndex = (currentTabIndex - 1 + tabBtns.length) % tabBtns.length;
+            } else if (e.key === "Home") {
+                e.preventDefault();
+                newIndex = 0;
+            } else if (e.key === "End") {
+                e.preventDefault();
+                newIndex = tabBtns.length - 1;
+            }
+            if (newIndex !== currentTabIndex) {
+                activateTab(newIndex);
+                tabBtns[newIndex].focus();
+            }
         });
     });
 
-    /* ═══════════════════════════════════════════════════════════
-       UPLOAD
-       ═══════════════════════════════════════════════════════════ */
     const dropZone = $("#dropZone");
     const fileInput = $("#fileInput");
     const selectedFile = $("#selectedFile");
@@ -498,9 +709,13 @@
     const jobProgress = $("#jobProgress");
     const progressFill = $("#progressFill");
     const progressText = $("#progressText");
+    const jobStatusTag = $("#jobStatusTag");
+    const fileInfo = $("#fileInfo");
+    const fileName = $("#fileName");
+    const fileSize = $("#fileSize");
     let selectedFileObj = null;
+    let lastDocId = null;
 
-    // Auto-detect category from file extension
     function detectCategory(filename) {
         const ext = filename.split(".").pop().toLowerCase();
         const map = {
@@ -514,12 +729,29 @@
 
     function handleFile(file) {
         selectedFileObj = file;
-        selectedFile.value = `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+        const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+        selectedFile.value = `${file.name} (${sizeMB} MB)`;
+        fileName.textContent = file.name;
+        fileSize.textContent = `${sizeMB} MB`;
+        fileInfo.classList.add("visible");
+        dropZone.classList.add("has-file");
         uploadBtn.disabled = false;
         $("#categorySelect").value = detectCategory(file.name);
     }
 
+    function clearFileSelection() {
+        selectedFileObj = null;
+        selectedFile.value = "";
+        fileInput.value = "";
+        fileInfo.classList.remove("visible");
+        dropZone.classList.remove("has-file");
+        uploadBtn.disabled = true;
+    }
+
     dropZone.addEventListener("click", () => fileInput.click());
+    dropZone.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); }
+    });
     dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
     dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
     dropZone.addEventListener("drop", (e) => {
@@ -530,6 +762,12 @@
     fileInput.addEventListener("change", () => {
         if (fileInput.files.length) handleFile(fileInput.files[0]);
     });
+
+    function autoFillDocId(docId) {
+        lastDocId = docId;
+        $("#quizDocId").value = docId;
+        $("#mindmapDocId").value = docId;
+    }
 
     let pollInterval = null;
 
@@ -549,26 +787,66 @@
             const data = await apiFetch("/api/upload", { method: "POST", body: form });
             uploadResult.classList.remove("hidden");
             uploadResult.innerHTML = "";
-            showAlert(uploadResult, "success",
-                `Upload thành công! Doc ID: <strong>${data.doc_id}</strong> | Job ID: <strong>${data.job_id}</strong> | Trạng thái: ${data.status}`
+
+            const successMsg = el("div", {},
+                el("div", { className: "flex-between mb-8" },
+                    el("span", {}, "Upload thành công!"),
+                    el("span", { className: `tag ${data.status === "completed" ? "completed" : "queued"}` }, data.status)
+                ),
+                el("div", { className: "doc-id-display" },
+                    el("span", {}, "Doc ID: " + data.doc_id),
+                    el("button", {
+                        className: "copy-btn",
+                        onclick: function() {
+                            navigator.clipboard.writeText(data.doc_id);
+                            this.textContent = "Đã copy!";
+                            this.classList.add("copied");
+                            setTimeout(() => { this.textContent = "Copy"; this.classList.remove("copied"); }, 1500);
+                        }
+                    }, "Copy")
+                )
             );
+            uploadResult.appendChild(successMsg);
 
-            // Copy doc_id to clipboard hint
-            const copyBtn = el("button", { className: "copy-btn mt-8", onclick: () => {
-                navigator.clipboard.writeText(data.doc_id);
-                copyBtn.textContent = "Đã copy!";
-                setTimeout(() => { copyBtn.textContent = "Copy Doc ID"; }, 1500);
-            }}, "Copy Doc ID");
-            uploadResult.appendChild(copyBtn);
+            if (data.job_id) {
+                const jobIdLine = el("div", { className: "text-xs text-dim mt-4" }, "Job ID: " + data.job_id);
+                uploadResult.appendChild(jobIdLine);
+            }
 
-            // Start polling job progress
             if (data.job_id && data.status !== "completed") {
                 jobProgress.classList.remove("hidden");
+                jobStatusTag.textContent = data.status;
+                jobStatusTag.className = `tag ${data.status}`;
                 pollJob(data.job_id);
             }
+
+            autoFillDocId(data.doc_id);
+
+            const quickActions = el("div", { className: "quick-actions" });
+            quickActions.appendChild(
+                el("button", {
+                    className: "btn ghost",
+                    onclick: () => { activateTab(1); $("#queryInput").focus(); }
+                }, "Hỏi đáp ngay")
+            );
+            quickActions.appendChild(
+                el("button", {
+                    className: "btn ghost",
+                    onclick: () => { activateTab(2); }
+                }, "Tạo Quiz")
+            );
+            quickActions.appendChild(
+                el("button", {
+                    className: "btn ghost",
+                    onclick: () => { activateTab(3); }
+                }, "Tạo Mindmap")
+            );
+            uploadResult.appendChild(quickActions);
+
+            clearFileSelection();
         } catch (err) {
             uploadResult.classList.remove("hidden");
-            showAlert(uploadResult, "error", `Upload thất bại: ${err.message}`);
+            showAlert(uploadResult, "error", "Upload thất bại: " + err.message);
         } finally {
             uploadBtn.disabled = false;
             uploadBtn.textContent = "Upload";
@@ -580,40 +858,37 @@
         let transientFailures = 0;
         pollInterval = setInterval(async () => {
             try {
-                const job = await apiFetch(`/api/jobs/${jobId}`);
+                const job = await apiFetch("/api/jobs/" + jobId);
                 transientFailures = 0;
-                progressFill.style.width = `${job.progress}%`;
+                progressFill.style.width = job.progress + "%";
+                jobStatusTag.textContent = job.status;
+                jobStatusTag.className = "tag " + job.status;
                 if (job.status === "completed") {
-                    progressText.textContent = "Hoàn tất!";
+                    progressText.textContent = "Hoàn tất! Tài liệu đã sẵn sàng.";
                     progressText.className = "status-text success";
                     clearInterval(pollInterval);
                 } else if (job.status === "failed") {
-                    progressText.textContent = `Lỗi: ${job.error_message || "Không rõ"}`;
+                    progressText.textContent = "Lỗi: " + (job.error_message || "Không rõ");
                     progressText.className = "status-text error";
                     clearInterval(pollInterval);
                 } else {
-                    progressText.textContent = `Đang xử lý... (${job.progress}%)`;
+                    progressText.textContent = "Đang xử lý... (" + job.progress + "%)";
                     progressText.className = "status-text";
                 }
             } catch (err) {
-                // ngrok can briefly return 502/504 while the worker is busy;
-                // keep polling before showing a permanent failure.
                 transientFailures += 1;
                 if (transientFailures >= 5) {
-                    progressText.textContent = `Không thể lấy trạng thái job: ${err.message}`;
+                    progressText.textContent = "Không thể lấy trạng thái job: " + err.message;
                     progressText.className = "status-text error";
                     clearInterval(pollInterval);
                 } else {
-                    progressText.textContent = `Đang kết nối lại... (${transientFailures}/5)`;
-                    progressText.className = "status-text";
+                    progressText.textContent = "Đang kết nối lại... (" + transientFailures + "/5)";
+                    progressText.className = "status-text warning";
                 }
             }
         }, 1500);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       QUERY
-       ═══════════════════════════════════════════════════════════ */
     const queryBtn = $("#queryBtn");
     const queryResult = $("#queryResult");
 
@@ -628,22 +903,20 @@
 
         const topK = $("#topK").value || 5;
         try {
-            const data = await apiFetch(`/api/query?q=${encodeURIComponent(q)}&top_k=${topK}`);
+            const data = await apiFetch("/api/query?q=" + encodeURIComponent(q) + "&top_k=" + topK);
             queryResult.innerHTML = "";
 
-            // Answer
             const answerBlock = el("div", { className: "result" }, data.answer || "Không có câu trả lời.");
             queryResult.appendChild(answerBlock);
 
-            // Citations
             if (data.citations && data.citations.length) {
                 queryResult.appendChild(el("h3", {}, "Trích dẫn"));
                 data.citations.forEach((c) => {
                     const meta = [
-                        c.page ? `Trang ${c.page}` : "",
-                        c.scene ? `Scene ${c.scene}` : "",
-                        c.timestamp != null ? `${formatTime(c.timestamp)}` : "",
-                    ].filter(Boolean).join(" · ");
+                        c.page ? "Trang " + c.page : "",
+                        c.scene ? "Scene " + c.scene : "",
+                        c.timestamp != null ? formatTime(c.timestamp) : "",
+                    ].filter(Boolean).join(" \u00b7 ");
                     queryResult.appendChild(
                         el("div", { className: "citation" },
                             el("div", { className: "meta" }, meta || "Doc: " + c.doc_id),
@@ -653,17 +926,16 @@
                 });
             }
 
-            // Related chunks
             if (data.related_chunks && data.related_chunks.length) {
                 queryResult.appendChild(el("h3", {}, "Đoạn liên quan"));
                 data.related_chunks.forEach((r, i) => {
                     const meta = [
-                        r.source ? `Nguồn: ${r.source}` : "",
-                        r.score != null ? `Score: ${r.score.toFixed(3)}` : "",
-                    ].filter(Boolean).join(" · ");
+                        r.source ? "Nguồn: " + r.source : "",
+                        r.score != null ? "Score: " + r.score.toFixed(3) : "",
+                    ].filter(Boolean).join(" \u00b7 ");
                     queryResult.appendChild(
                         el("div", { className: "citation" },
-                            el("div", { className: "meta" }, `#${i + 1} · ${meta}`),
+                            el("div", { className: "meta" }, "#" + (i + 1) + " \u00b7 " + meta),
                             el("div", {}, r.chunk)
                         )
                     );
@@ -671,7 +943,7 @@
             }
         } catch (err) {
             queryResult.innerHTML = "";
-            showAlert(queryResult, "error", `Lỗi: ${err.message}`);
+            showAlert(queryResult, "error", "Lỗi: " + err.message);
         } finally {
             queryBtn.disabled = false;
             queryBtn.textContent = "Hỏi";
@@ -681,12 +953,9 @@
     function formatTime(seconds) {
         const m = Math.floor(seconds / 60);
         const s = Math.floor(seconds % 60);
-        return `${m}:${s.toString().padStart(2, "0")}`;
+        return m + ":" + s.toString().padStart(2, "0");
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       QUIZ
-       ═══════════════════════════════════════════════════════════ */
     const generateQuizBtn = $("#generateQuizBtn");
     const quizArea = $("#quizArea");
     let currentQuiz = null;
@@ -702,14 +971,14 @@
         quizArea.innerHTML = '<div class="loading"><span class="spinner"></span> Đang sinh câu hỏi...</div>';
 
         try {
-            const quiz = await apiFetch(`/api/quiz/generate?doc_id=${encodeURIComponent(docId)}&num_questions=${numQ}`, {
+            const quiz = await apiFetch("/api/quiz/generate?doc_id=" + encodeURIComponent(docId) + "&num_questions=" + numQ, {
                 method: "POST",
             });
             currentQuiz = quiz;
             renderQuiz(quiz);
         } catch (err) {
             quizArea.innerHTML = "";
-            showAlert(quizArea, "error", `Lỗi tạo quiz: ${err.message}`);
+            showAlert(quizArea, "error", "Lỗi tạo quiz: " + err.message);
         } finally {
             generateQuizBtn.disabled = false;
             generateQuizBtn.textContent = "Tạo Quiz";
@@ -719,32 +988,36 @@
     function renderQuiz(quiz) {
         quizArea.innerHTML = "";
 
-        // Quiz info
         const info = el("div", { className: "flex-between mb-8" },
-            el("span", { className: "text-sm text-dim" }, `Quiz ID: ${quiz.quiz_id} · Doc: ${quiz.doc_id} · ${quiz.questions.length} câu`),
+            el("span", { className: "text-sm text-secondary" },
+                "Quiz ID: " + quiz.quiz_id + " \u00b7 Doc: " + quiz.doc_id + " \u00b7 " + quiz.questions.length + " c\u00e2u"
+            ),
             el("button", {
                 className: "copy-btn",
-                onclick: () => {
+                onclick: function() {
                     navigator.clipboard.writeText(quiz.quiz_id);
-                    const b = event.target;
-                    b.textContent = "Đã copy!";
-                    setTimeout(() => { b.textContent = "Copy Quiz ID"; }, 1500);
+                    this.textContent = "Đã copy!";
+                    this.classList.add("copied");
+                    setTimeout(() => { this.textContent = "Copy Quiz ID"; this.classList.remove("copied"); }, 1500);
                 }
             }, "Copy Quiz ID")
         );
         quizArea.appendChild(info);
 
-        // Questions
         const form = el("form", { id: "quizForm" });
         quiz.questions.forEach((q, qi) => {
             const qDiv = el("div", { className: "quiz-question" });
-            qDiv.appendChild(el("div", { className: "q-text" }, `Câu ${qi + 1}: ${q.question}`));
+            qDiv.appendChild(el("div", { className: "q-text" }, "Câu " + (qi + 1) + ": " + q.question));
 
             q.options.forEach((opt, oi) => {
                 const label = el("label", { className: "quiz-option", "data-qi": qi, "data-oi": oi });
-                const radio = el("input", { type: "radio", name: `q${qi}`, value: oi });
+                const radio = el("input", { type: "radio", name: "q" + qi, value: oi });
                 label.appendChild(radio);
-                label.appendChild(document.createTextNode(` ${opt}`));
+                label.appendChild(document.createTextNode(" " + opt));
+                radio.addEventListener("change", () => {
+                    qDiv.querySelectorAll(".quiz-option").forEach((o) => o.classList.remove("selected"));
+                    label.classList.add("selected");
+                });
                 qDiv.appendChild(label);
             });
 
@@ -752,7 +1025,6 @@
         });
         quizArea.appendChild(form);
 
-        // Submit button
         const submitBtn = el("button", {
             type: "button",
             className: "btn mt-12",
@@ -760,7 +1032,6 @@
         }, "Nộp bài");
         quizArea.appendChild(submitBtn);
 
-        // Result area
         quizArea.appendChild(el("div", { id: "quizScore" }));
     }
 
@@ -770,7 +1041,7 @@
         let allAnswered = true;
 
         currentQuiz.questions.forEach((q, qi) => {
-            const selected = document.querySelector(`input[name="q${qi}"]:checked`);
+            const selected = document.querySelector("input[name=\"q" + qi + "\"]:checked");
             if (!selected) { allAnswered = false; return; }
             answers.push(parseInt(selected.value));
         });
@@ -781,7 +1052,7 @@
         }
 
         try {
-            const result = await apiFetch(`/api/quiz/${currentQuiz.quiz_id}/submit`, {
+            const result = await apiFetch("/api/quiz/" + currentQuiz.quiz_id + "/submit", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ quiz_id: currentQuiz.quiz_id, answers }),
@@ -790,16 +1061,16 @@
             const scoreDiv = $("#quizScore");
             scoreDiv.innerHTML = "";
             const pct = Math.round((result.score / result.total) * 100);
+            const pctClass = pct >= 70 ? "high" : pct >= 40 ? "mid" : "low";
             scoreDiv.appendChild(
                 el("div", { className: "quiz-score card" },
-                    el("div", { className: "pct" }, `${pct}%`),
-                    el("div", { className: "text-sm text-dim" }, `Đúng ${result.score}/${result.total} câu`)
+                    el("div", { className: "pct " + pctClass }, pct + "%"),
+                    el("div", { className: "text-sm text-secondary" }, "Đúng " + result.score + "/" + result.total + " câu")
                 )
             );
 
-            // Highlight correct/wrong
             currentQuiz.questions.forEach((q, qi) => {
-                const options = document.querySelectorAll(`label[data-qi="${qi}"]`);
+                const options = document.querySelectorAll("label[data-qi=\"" + qi + "\"]");
                 options.forEach((opt) => {
                     const oi = parseInt(opt.dataset.oi);
                     if (oi === q.correct_index) opt.classList.add("correct");
@@ -807,13 +1078,10 @@
                 });
             });
         } catch (err) {
-            showAlert($("#quizScore"), "error", `Lỗi nộp bài: ${err.message}`);
+            showAlert($("#quizScore"), "error", "Lỗi nộp bài: " + err.message);
         }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       MINDMAP
-       ═══════════════════════════════════════════════════════════ */
     const mindmapBtn = $("#mindmapBtn");
     const mindmapArea = $("#mindmapArea");
 
@@ -827,59 +1095,55 @@
         mindmapArea.innerHTML = '<div class="loading"><span class="spinner"></span> Đang sinh mindmap...</div>';
 
         try {
-            const data = await apiFetch(`/api/mindmap/${encodeURIComponent(docId)}`);
+            const data = await apiFetch("/api/mindmap/" + encodeURIComponent(docId));
             mindmapArea.innerHTML = "";
 
-            // Header with copy button
             const header = el("div", { className: "flex-between mb-8" },
-                el("span", { className: "text-sm text-dim" }, `Doc ID: ${data.doc_id}`),
+                el("span", { className: "text-sm text-secondary" }, "Doc ID: " + data.doc_id),
                 el("button", {
                     className: "copy-btn",
-                    onclick: () => {
+                    onclick: function() {
                         navigator.clipboard.writeText(data.markdown);
-                        const b = event.target;
-                        b.textContent = "Đã copy!";
-                        setTimeout(() => { b.textContent = "Copy Markdown"; }, 1500);
+                        this.textContent = "Đã copy!";
+                        this.classList.add("copied");
+                        setTimeout(() => { this.textContent = "Copy Markdown"; this.classList.remove("copied"); }, 1500);
                     }
                 }, "Copy Markdown")
             );
             mindmapArea.appendChild(header);
 
-            // Mindmap visual (markmap)
             const mmContainer = el("div", { className: "mindmap-container" });
             const mmSvg = el("div", { className: "markmap" }, data.markdown);
             mmContainer.appendChild(mmSvg);
             mindmapArea.appendChild(mmContainer);
 
-            // Re-render markmap
             if (window.markmap && window.markmap.autoLoader) {
                 window.markmap.autoLoader.renderAll();
             }
 
-            // Export the generated content without calling the model again.
             const downloadControls = el("div", { className: "mindmap-controls mt-8" });
             downloadControls.append(
                 el("button", {
-                    className: "btn download-link",
+                    className: "btn secondary",
                     onclick: () => downloadText(
-                        `${docId}-mindmap.md`, data.markdown,
+                        docId + "-mindmap.md", data.markdown,
                         "text/markdown;charset=utf-8"
                     )
                 }, "Tải Markdown"),
                 el("button", {
-                    className: "btn download-link",
+                    className: "btn secondary",
                     onclick: () => downloadMindmapSvg(mmContainer, docId)
                 }, "Tải SVG")
             );
             mindmapArea.appendChild(downloadControls);
 
-            // Raw markdown toggle
             const toggleBtn = el("button", {
-                className: "btn secondary mt-8",
+                className: "btn ghost mt-8",
                 style: "font-size:.8rem;padding:6px 12px;",
-                onclick: () => {
+                onclick: function() {
                     const raw = $("#mindmapRaw");
                     raw.classList.toggle("hidden");
+                    this.textContent = raw.classList.contains("hidden") ? "Xem Markdown gốc" : "Ẩn Markdown gốc";
                 }
             }, "Xem Markdown gốc");
             mindmapArea.appendChild(toggleBtn);
@@ -889,7 +1153,7 @@
 
         } catch (err) {
             mindmapArea.innerHTML = "";
-            showAlert(mindmapArea, "error", `Lỗi tạo mindmap: ${err.message}`);
+            showAlert(mindmapArea, "error", "Lỗi tạo mindmap: " + err.message);
         } finally {
             mindmapBtn.disabled = false;
             mindmapBtn.textContent = "Tạo Mindmap";
@@ -920,16 +1184,13 @@
         const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = `${docId}-mindmap.svg`;
+        link.download = docId + "-mindmap.svg";
         document.body.appendChild(link);
         link.click();
         link.remove();
         URL.revokeObjectURL(link.href);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       HISTORY
-       ═══════════════════════════════════════════════════════════ */
     const historyArea = $("#historyArea");
 
     async function loadHistory() {
@@ -938,7 +1199,7 @@
             const rows = await apiFetch("/api/history");
             historyArea.innerHTML = "";
             if (!rows.length) {
-                historyArea.innerHTML = '<p class="text-dim text-sm">Chưa có hoạt động nào.</p>';
+                showEmptyState(historyArea, "&#128203;", "Chưa có hoạt động nào. Hãy bắt đầu bằng cách upload tài liệu.");
                 return;
             }
 
@@ -957,10 +1218,10 @@
                     ...rows.map((r, i) =>
                         el("tr", {},
                             el("td", {}, i + 1),
-                            el("td", {}, r.doc_id),
+                            el("td", { style: "font-family:monospace;font-size:.8rem;" }, r.doc_id),
                             el("td", {}, actionLabel(r.action)),
-                            el("td", {}, r.created_at ? formatDate(r.created_at) : "—"),
-                            el("td", { className: "text-sm text-dim" }, r.metadata ? JSON.stringify(r.metadata).slice(0, 80) : "—")
+                            el("td", { className: "text-xs text-dim" }, r.created_at ? formatDate(r.created_at) : "\u2014"),
+                            el("td", { className: "text-xs text-dim" }, r.metadata ? JSON.stringify(r.metadata).slice(0, 80) : "\u2014")
                         )
                     )
                 )
@@ -969,7 +1230,7 @@
             historyArea.appendChild(wrap);
         } catch (err) {
             historyArea.innerHTML = "";
-            showAlert(historyArea, "error", `Lỗi tải lịch sử: ${err.message}`);
+            showAlert(historyArea, "error", "Lỗi tải lịch sử: " + err.message);
         }
     }
 
@@ -992,18 +1253,6 @@
     }
 
     $("#refreshHistory").addEventListener("click", loadHistory);
-
-    // Load history on first tab switch
-    let historyLoaded = false;
-    const origTabClick = $$(".tab-btn");
-    // Already handled above; just trigger on first visit
-    const observer = new MutationObserver(() => {
-        if ($("#tab-history").classList.contains("active") && !historyLoaded) {
-            historyLoaded = true;
-            loadHistory();
-        }
-    });
-    observer.observe($("#tab-history"), { attributes: true, attributeFilter: ["class"] });
 
 })();
 </script>

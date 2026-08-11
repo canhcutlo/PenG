@@ -23,8 +23,6 @@ T = TypeVar("T", bound=BaseModel)
 
 MAX_RETRIES = 3
 
-# Injectable completion function (tests can patch this to a fake LLM).
-# Defaults to the real local LLM adapter.
 completion_func = complete
 
 
@@ -35,7 +33,6 @@ class GenerationError(Exception):
 def _extract_json(raw: str) -> dict:
     """Parse JSON from LLM output, tolerating code fences and surrounding text."""
     text = raw.strip()
-    # Strip markdown fences
     if text.startswith("```"):
         lines = text.splitlines()
         if lines and lines[0].strip().lower().startswith("```"):
@@ -44,7 +41,6 @@ def _extract_json(raw: str) -> dict:
             lines = lines[:-1]
         text = "\n".join(lines).strip()
 
-    # Find first { ... } block
     start = text.find("{")
     end = text.rfind("}")
     if start == -1 or end == -1 or end <= start:

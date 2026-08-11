@@ -56,7 +56,6 @@ def _upload_png(content: bytes = None):
     )
 
 
-# ─── End-to-end flow ────────────────────────────────────────────────────────
 
 
 def test_e2e_upload_generates_doc_and_job():
@@ -76,15 +75,9 @@ def test_e2e_job_status_retrievable():
     assert jr.json()["status"] in ("queued", "processing", "completed", "failed")
 
 
-# ─── Quiz flow ──────────────────────────────────────────────────────────────
 
 
 def test_e2e_quiz_generate_and_submit():
-    # Upload a PNG (extraction is async; we skip extraction for this test but
-    # quiz/generate will extract text from the stored file).
-    # The fake PNG content is not a valid image for OCR, so extraction will fail.
-    # We test the quiz API contract with a mock: we directly test the route
-    # with a document that has pre-stored text via sqlite.
 
     from app.db.sqlite_store import insert_document
     import uuid
@@ -93,10 +86,7 @@ def test_e2e_quiz_generate_and_submit():
     doc_id = uuid.uuid4().hex[:12]
     now = datetime.now(timezone.utc).isoformat()
     insert_document(doc_id, "fake.pdf", "fake.pdf", "pdf", 100, "e2e_hash",)
-    # The file doesn't exist on disk, so /quiz/generate will fail (file not found).
-    # We accept this limitation; the API contract is tested via structured tests.
 
-    # Instead, test that the route exists and validates input:
     resp = client.post("/api/quiz/generate?doc_id=nonexistent&num_questions=3")
     assert resp.status_code == 404
     assert "Document" in resp.json()["detail"]
@@ -104,7 +94,6 @@ def test_e2e_quiz_generate_and_submit():
 
 def test_e2e_quiz_submit_scoring():
     """Test quiz grading logic via the submit endpoint."""
-    # Insert a quiz directly into SQLite
     from app.db.sqlite_store import insert_quiz
 
     quiz_id = "testquiz123"
@@ -119,7 +108,6 @@ def test_e2e_quiz_submit_scoring():
     ]
     insert_quiz(quiz_id, doc_id, questions)
 
-    # Submit correct answer
     resp = client.post(
         f"/api/quiz/{quiz_id}/submit",
         json={"quiz_id": quiz_id, "answers": [0]},
@@ -154,7 +142,6 @@ def test_e2e_quiz_submit_wrong():
     assert resp.json()["score"] == 0
 
 
-# ─── History ────────────────────────────────────────────────────────────────
 
 
 def test_e2e_history_logging():
@@ -172,7 +159,6 @@ def test_e2e_history_endpoint():
     assert isinstance(resp.json(), list)
 
 
-# ─── Query ──────────────────────────────────────────────────────────────────
 
 
 def test_e2e_query_empty():

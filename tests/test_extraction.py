@@ -15,7 +15,6 @@ from app.services.ocr import ocr_image, _tesseract_ocr, extract_native_pdf_text
 from app.services.extractor import extract
 
 
-# ─── Fixtures ───────────────────────────────────────────────────────────────
 
 
 @pytest.fixture
@@ -23,7 +22,6 @@ def text_image(tmp_path):
     """Create a small PNG image with text for OCR tests."""
     img = Image.new("RGB", (300, 100), color="white")
     draw = ImageDraw.Draw(img)
-    # Use default font; custom font may not be available
     try:
         font = ImageFont.truetype("arial.ttf", 24)
     except OSError:
@@ -48,7 +46,6 @@ def text_pdf(tmp_path):
     return str(path)
 
 
-# ─── Unit Tests (no AI model downloads) ─────────────────────────────────────
 
 
 @pytest.mark.asyncio
@@ -60,7 +57,7 @@ async def test_tesseract_ocr_not_available_without_binary(text_image):
     try:
         await _tesseract_ocr(text_image)
     except pytesseract.TesseractNotFoundError:
-        pass  # expected when tesseract binary is absent
+        pass
 
 
 @pytest.mark.asyncio
@@ -77,7 +74,6 @@ async def test_extract_image_routes_to_ocr(text_image):
         result = await extract(text_image, "image")
         assert "text" in result
     except Exception as exc:
-        # Expected if OCR binary/model not available in test env
         assert "tesseract" in str(exc).lower() or "not installed" in str(exc).lower()
 
 
@@ -89,7 +85,6 @@ async def test_extract_pdf_native_text(text_pdf):
     assert "Hello PenG PDF" in result["text"]
 
 
-# ─── Integration Tests (require real media / AI model downloads) ─────────────
 
 
 @pytest.mark.integration
@@ -101,7 +96,6 @@ async def test_extract_pdf_native_text(text_pdf):
 async def test_ocr_image(text_image):
     result = await ocr_image(text_image)
     assert isinstance(result, str)
-    # Tesseract may not reliably read 'Hello PenG' with default font
     assert result.strip() != ""
 
 

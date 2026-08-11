@@ -19,7 +19,6 @@ from app.services.chunking import (
 )
 
 
-# ─── Chunking tests ─────────────────────────────────────────────────────────
 
 
 def test_split_paragraphs():
@@ -36,7 +35,7 @@ def test_split_by_headers():
 
 
 def test_chunk_respects_max_size():
-    text = "từ " * 3000  # 6000 chars
+    text = "từ " * 3000
     chunks = chunk_text(text, max_chars=1000, overlap=100)
     for c in chunks:
         assert len(c) <= 1000 + 100
@@ -47,7 +46,6 @@ def test_chunk_does_not_cut_mid_word():
     text = "Câu thứ nhất. Câu thứ hai. " * 200
     chunks = chunk_text(text, max_chars=500, overlap=50)
     for c in chunks:
-        # chunk should end at a sentence boundary or whitespace
         assert c.rstrip().endswith(("nhất.", "hai.", " ")) or len(c) <= 500 + 50
 
 
@@ -69,7 +67,6 @@ def test_build_chunks_scene_timestamp():
     assert meta["timestamp"] == 12.5
 
 
-# ─── Retrieval tests with fake embedding (no real model) ────────────────────
 
 
 class FakeEmbedding:
@@ -84,7 +81,6 @@ class FakeEmbedding:
             vec = np.zeros(self.dim, dtype=np.float32)
             for i, ch in enumerate(t):
                 vec[i % self.dim] += ord(ch) * 0.001
-            # Add some structure per text
             vec[0] = sum(ord(c) for c in t) / max(1, len(t))
             vec[1] = len(t)
             if normalize_embeddings:
@@ -131,7 +127,6 @@ async def test_rag_index_and_query_with_fake_embedding(tmp_path):
             ids=["fake-doc-1"],
         )
 
-        # naive mode: vector retrieval, no graph needed
         result = await rag.aquery(
             "Thủ đô Việt Nam",
             param=QueryParam(mode="naive", top_k=3, enable_rerank=False),

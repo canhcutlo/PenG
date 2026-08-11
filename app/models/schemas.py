@@ -3,7 +3,6 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Literal
 
-# ─── Document & Job ────────────────────────────────────────────────────────
 
 
 class Document(BaseModel):
@@ -11,7 +10,7 @@ class Document(BaseModel):
     filename: str
     original_name: str
     category: Literal["audio", "image", "pdf", "video"]
-    file_size: int  # bytes
+    file_size: int
     checksum_sha256: str
     status: Literal["queued", "processing", "completed", "failed"]
     created_at: datetime
@@ -42,7 +41,6 @@ class JobCreate(BaseModel):
     job_type: Literal["extract", "index"]
 
 
-# ─── Upload ────────────────────────────────────────────────────────────────
 
 
 class UploadResponse(BaseModel):
@@ -61,7 +59,6 @@ class JobStatusResponse(BaseModel):
     error_message: str | None = None
 
 
-# ─── Query ─────────────────────────────────────────────────────────────────
 
 
 class Chunk(BaseModel):
@@ -86,7 +83,7 @@ class QueryResult(BaseModel):
     doc_id: str
     chunk: str
     score: float
-    source: str  # "audio", "pdf", "image", "video"
+    source: str
 
 
 class QueryResponse(BaseModel):
@@ -95,7 +92,6 @@ class QueryResponse(BaseModel):
     related_chunks: list[QueryResult] = []
 
 
-# ─── Quiz ──────────────────────────────────────────────────────────────────
 
 
 class QuizQuestion(BaseModel):
@@ -114,7 +110,7 @@ class Quiz(BaseModel):
 
 class QuizSubmission(BaseModel):
     quiz_id: str
-    answers: list[int]  # selected option indices
+    answers: list[int]
 
 
 class QuizResult(BaseModel):
@@ -125,7 +121,6 @@ class QuizResult(BaseModel):
     incorrect: list[int]
 
 
-# ─── Mindmap ───────────────────────────────────────────────────────────────
 
 
 class MindmapNode(BaseModel):
@@ -134,7 +129,6 @@ class MindmapNode(BaseModel):
     children: list["MindmapNode"] = []
 
 
-# ─── History ───────────────────────────────────────────────────────────────
 
 
 class LearningActivity(BaseModel):
@@ -145,7 +139,6 @@ class LearningActivity(BaseModel):
     created_at: datetime | None = None
 
 
-# ─── Error ─────────────────────────────────────────────────────────────────
 
 
 class ErrorResponse(BaseModel):

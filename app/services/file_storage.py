@@ -31,7 +31,6 @@ def validate_upload(file: UploadFile, category: str):
     if category not in EXTENSION_MAP:
         raise HTTPException(status_code=400, detail=f"Unknown category: {category}")
 
-    # Check extension
     ext = Path(file.filename or "").suffix.lower()
     if ext not in EXTENSION_MAP[category]:
         allowed = ", ".join(EXTENSION_MAP[category])
@@ -40,7 +39,6 @@ def validate_upload(file: UploadFile, category: str):
             detail=f"Invalid extension '{ext}' for category '{category}'. Allowed: {allowed}",
         )
 
-    # Check MIME type (only if provided and not empty)
     if file.content_type and file.content_type.strip():
         if file.content_type not in MIME_MAP[category]:
             allowed = ", ".join(MIME_MAP[category])

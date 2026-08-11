@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.config import settings
+from app.config import settings, PROJECT_ROOT
 from app.routers import (
     upload,
     query,
@@ -13,9 +13,12 @@ from app.routers import (
 from app.db.sqlite_store import init_sqlite
 
 
+STATIC_DIR = PROJECT_ROOT / "static"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    settings.upload_dir.mkdir(exist_ok=True)
+    settings.upload_dir.mkdir(parents=True, exist_ok=True)
     init_sqlite()
     yield
 
@@ -30,7 +33,6 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # API routes
     @app.get("/api/health")
     async def health():
         from app.db.sqlite_store import get_connection
@@ -49,8 +51,7 @@ def create_app() -> FastAPI:
     app.include_router(mindmap.router, prefix="/api", tags=["Mindmap"])
     app.include_router(history.router, prefix="/api", tags=["History"])
 
-    # Static frontend
-    app.mount("/", StaticFiles(directory="static", html=True), name="static")
+    app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
 
     return app
 

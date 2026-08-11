@@ -4,9 +4,11 @@
 - `complete()` falls back to a deterministic fake reply when no LLM is
   configured/available, so unit tests and retrieval tests don't need a model.
 - `embed()` uses sentence-transformers; verified dimension 768 for
-  `keepitreal/vietnamese-sbert`.
+  `keepitreal/vietnamese-sbert`. Returns a NumPy array because LightRAG's
+  EmbeddingFunc requires `.size` on the result.
 """
 import logging
+import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from sentence_transformers import SentenceTransformer
@@ -101,11 +103,9 @@ async def complete(prompt: str, system_prompt: str | None = None, max_new_tokens
         temperature=0.3,
         do_sample=True,
     )
-    # Decode only newly generated tokens (skip the prompt prefix)
     response_ids = outputs[0][input_len:]
     response = tokenizer.decode(response_ids, skip_special_tokens=True)
 
-    # Some models still include template markers; strip them
     for marker in ["assistant", "<|im_start|>assistant", "<|im_end|>", "<|endoftext|>"]:
         if marker in response:
             response = response.split(marker)[-1].strip()
@@ -119,9 +119,8 @@ def _fake_completion(prompt: str, system_prompt: str | None = None) -> str:
     return " ".join(words) if words else "No LLM available."
 
 
-async def embed(texts: list[str]) -> list[list[float]]:
-    """Embed a list of texts. Returns list of vectors (each a Python list)."""
+async def embed(texts: list[str]) -> np.ndarray:
+    """Embed a list of texts. Returns a NumPy array of shape (n_texts, dim)."""
     model = _get_embedding_model()
     embeddings = model.encode(texts, normalize_embeddings=True)
-    # Return numpy arrays so LightRAG can use `.size`/shape; consumers may call .tolist()
     return embeddings

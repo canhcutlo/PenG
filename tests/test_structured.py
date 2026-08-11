@@ -10,7 +10,6 @@ from app.services.prompts import build_quiz_prompt, build_mindmap_prompt, build_
 from app.services.structured import GenerationError
 
 
-# ─── Fake LLM helpers ───────────────────────────────────────────────────────
 
 
 def _make_fake_llm(json_payload: str | None = None, raw_text: str | None = None):
@@ -24,7 +23,6 @@ def _make_fake_llm(json_payload: str | None = None, raw_text: str | None = None)
     return fake
 
 
-# ─── Structured generation ──────────────────────────────────────────────────
 
 
 class MockResult(BaseModel):
@@ -87,7 +85,6 @@ async def test_generate_structured_gives_up_after_retries(monkeypatch):
         )
 
 
-# ─── Quiz generation ────────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
@@ -135,7 +132,6 @@ async def test_generate_quiz_rejects_duplicate_options(monkeypatch):
         await generate_quiz("text", num_questions=1)
 
 
-# ─── Mindmap ────────────────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
@@ -145,8 +141,7 @@ async def test_generate_mindmap_sanitizes_html(monkeypatch):
     async def fake_complete(prompt, system_prompt=None, **kwargs):
         return "# Chủ đề\n## Nhánh\n<script>alert(1)</script>\n- ý 1"
 
-    monkeypatch.setattr(mm.complete, "__code__", fake_complete.__code__)  # keep sync stub safe
-    # Patch the imported function object referenced inside module namespace
+    monkeypatch.setattr(mm.complete, "__code__", fake_complete.__code__)
     monkeypatch.setattr(mm, "complete", fake_complete)
 
     result = await generate_mindmap_markdown("nội dung")
@@ -162,7 +157,6 @@ async def test_sanitize_mindmap_limits_depth():
     assert "```" not in result
 
 
-# ─── Prompts ────────────────────────────────────────────────────────────────
 
 
 def test_build_quiz_prompt_contains_schema():

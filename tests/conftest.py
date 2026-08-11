@@ -8,13 +8,10 @@ from app.config import settings
 @pytest.fixture(scope="session", autouse=True)
 def setup_db():
     """Ensure SQLite tables exist once per test session; disable background processing."""
-    # Disable background processing so unit tests don't trigger AI model downloads
     settings.process_on_upload = False
     settings.index_on_upload = False
-    # Force CPU mode for any model that may load during tests
     settings.llm_device = "cpu"
 
-    # Remove old DB and uploads to start fresh
     db_path = settings.sqlite_path
     if db_path.exists():
         db_path.unlink()

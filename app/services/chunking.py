@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 MAX_CHARS = 2000
 OVERLAP = 200
 
-# Headers produced by extraction services, e.g. "[Page 1]", "[Scene 3 at 12.5s]"
 PAGE_RE = re.compile(r"\[Page\s+(\d+)\]", re.IGNORECASE)
 SCENE_RE = re.compile(r"\[Scene\s+(\d+)(?:\s+at\s+([\d.]+)s)?\]", re.IGNORECASE)
 
@@ -23,12 +22,10 @@ class Chunk:
 
 def _split_into_blocks(text: str) -> list[str]:
     """Split text into logical blocks: by headers, blank lines, or fallback to paragraphs."""
-    # Split on known headers first: "[Page N]" / "[Scene N at Xs]"
     parts = re.split(r"(?=\[Page \d+\])|(?=\[Scene \d+)", text)
     parts = [p.strip() for p in parts if p.strip()]
     if len(parts) > 1:
         return parts
-    # Fallback: split by blank lines
     parts = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
     return parts or ([text.strip()] if text.strip() else [])
 
@@ -54,7 +51,6 @@ def chunk_text(text: str, max_chars: int = MAX_CHARS, overlap: int = OVERLAP) ->
     while start < n:
         end = min(start + max_chars, n)
         if end < n:
-            # Try to find a sentence boundary before end
             cut = _find_sentence_boundary(text, start, end)
             if cut is not None:
                 end = cut

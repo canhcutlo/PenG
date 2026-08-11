@@ -3,9 +3,8 @@ import re
 from app.services.llm import complete
 from app.services.prompts import build_mindmap_prompt
 
-# Tags/fences considered unsafe for rendering
 DANGEROUS_PATTERN = re.compile(r"<[^>]+>|```|~~~", re.IGNORECASE)
-MAX_DEPTH_HEADERS = 3  # allow #, ##, ### at most
+MAX_DEPTH_HEADERS = 3
 
 
 async def generate_mindmap_markdown(text: str) -> str:
@@ -17,10 +16,8 @@ async def generate_mindmap_markdown(text: str) -> str:
 
 def sanitize_mindmap(raw: str) -> str:
     """Remove dangerous HTML/code fences and enforce max header depth."""
-    # Remove HTML tags and code fences
     cleaned = DANGEROUS_PATTERN.sub("", raw)
 
-    # Normalize header depth: ### or deeper → ###
     lines = []
     for line in cleaned.splitlines():
         m = re.match(r"^(#{1,6})\s+(.*)$", line)

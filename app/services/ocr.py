@@ -2,7 +2,7 @@
 import os
 import io
 from pathlib import Path
-import fitz  # pymupdf
+import fitz
 from PIL import Image
 from app.config import settings
 
@@ -29,7 +29,6 @@ async def ocr_pdf(pdf_path: str) -> str:
         return await _tesseract_ocr_pdf(pdf_path)
 
 
-# ─── Tesseract ─────────────────────────────────────────────────────────────
 
 
 async def _tesseract_ocr(image_path: str) -> str:
@@ -53,7 +52,6 @@ async def _tesseract_ocr_pdf(pdf_path: str) -> str:
     return "\n\n".join(texts)
 
 
-# ─── EasyOCR ───────────────────────────────────────────────────────────────
 
 
 _easyocr_reader = None
@@ -90,7 +88,6 @@ async def _easyocr_pdf(pdf_path: str) -> str:
     return "\n\n".join(page_texts)
 
 
-# ─── Surya (optional, Python <=3.11 only) ──────────────────────────────────
 
 
 async def _surya_ocr_image(image_path: str) -> str:
@@ -124,7 +121,6 @@ async def _surya_ocr_pdf(pdf_path: str) -> str:
     return "\n\n".join(texts)
 
 
-# ─── Helpers ───────────────────────────────────────────────────────────────
 
 
 def _page_to_image(page, dpi: int = 200) -> Image.Image:
@@ -141,7 +137,6 @@ async def extract_native_pdf_text(pdf_path: str) -> str:
         page_texts.append((page.number, text))
     doc.close()
 
-    # If most pages have text, return native text
     non_empty = sum(1 for _, t in page_texts if t)
     if non_empty >= len(page_texts) * 0.5:
         return "\n\n".join(
@@ -149,5 +144,4 @@ async def extract_native_pdf_text(pdf_path: str) -> str:
             for num, text in page_texts
         ).strip()
 
-    # Otherwise OCR
     return await ocr_pdf(pdf_path)

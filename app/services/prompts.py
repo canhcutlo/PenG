@@ -3,7 +3,6 @@
 Each prompt includes: input format, output requirements, and constraints.
 """
 
-# ─── Answer ─────────────────────────────────────────────────────────────────
 
 ANSWER_SYSTEM = (
     "Bạn là trợ lý học tập. Trả lời dựa trên context được cung cấp. "
@@ -23,7 +22,6 @@ def build_answer_prompt(question: str, context: str) -> str:
     return ANSWER_PROMPT.format(question=question, context=context)
 
 
-# ─── Summary ────────────────────────────────────────────────────────────────
 
 SUMMARY_PROMPT = """Tóm tắt tài liệu sau thành các ý chính dạng bullet points.
 - Mỗi bullet tối đa 15 từ.
@@ -40,7 +38,6 @@ def build_summary_prompt(text: str) -> str:
     return SUMMARY_PROMPT.format(text=text[:6000])
 
 
-# ─── Mindmap ────────────────────────────────────────────────────────────────
 
 MINDMAP_PROMPT = """Chuyển nội dung sau thành mindmap dạng Markdown:
 - Dòng đầu: `# <chủ đề chính>` (1 dòng)
@@ -57,7 +54,6 @@ def build_mindmap_prompt(text: str) -> str:
     return MINDMAP_PROMPT.format(text=text[:6000])
 
 
-# ─── Quiz ───────────────────────────────────────────────────────────────────
 
 QUIZ_SYSTEM = (
     "Bạn là chuyên gia tạo câu hỏi trắc nghiệm. Tạo câu hỏi rõ ràng, "

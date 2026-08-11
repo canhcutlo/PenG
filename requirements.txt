@@ -10,7 +10,9 @@ aiofiles>=24.0
 faster-whisper>=1.0
 
 # OCR
-surya-ocr>=0.4; python_version<"3.14"  # Surya does not support Python 3.14 yet
+# Surya OCR is optional and only installable on Python <=3.11 (requires Pillow<11).
+# On Python 3.12+ use the default tesseract engine, or install easyocr/pytesseract.
+# To use Surya on a supported Python: pip install "surya-ocr>=0.4" "Pillow<11"
 easyocr>=1.7
 pytesseract>=0.3
 pymupdf>=1.24

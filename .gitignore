@@ -10,6 +10,8 @@ venv/
 
 # Project-private agent/orchestration files
 .opencode/
+.agents/
+skills-lock.json
 AGENTS.md
 Plan.md
 opencode.json

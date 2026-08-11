@@ -88,8 +88,6 @@ async def query_documents(query: str, top_k: int = 5, mode: str = "naive") -> di
     raw = await rag.aquery(query, param=param)
     answer = str(raw or "")
 
-    # LightRAG naive returns no-context when LLM is too weak;
-    # fall back to returning retrieved chunks directly.
     if "no-context" in answer.lower() or not answer.strip():
         chunks = await _retrieve_chunks_directly(query, top_k)
         if chunks:

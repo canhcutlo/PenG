@@ -8,7 +8,6 @@ from app.config import settings
 client = TestClient(app)
 
 
-# ─── Health ────────────────────────────────────────────────────────────────
 
 
 def test_health():
@@ -19,12 +18,11 @@ def test_health():
     assert data["db"] == "ok"
 
 
-# ─── Upload ────────────────────────────────────────────────────────────────
 
 
 def test_upload_valid_image():
     """Upload a valid PNG file — expect 200 with doc_id + job_id."""
-    content = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100  # minimal PNG header
+    content = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
     response = client.post(
         "/api/upload",
         files={"file": ("test.png", io.BytesIO(content), "image/png")},
@@ -40,7 +38,6 @@ def test_upload_valid_image():
 
 def test_upload_valid_audio():
     """Upload a valid MP3 file."""
-    # Minimal MP3 frame header (sync word + basic header)
     content = b"\xff\xfb\x90\x00" + b"\x00" * 200
     response = client.post(
         "/api/upload",
@@ -110,10 +107,9 @@ def test_upload_duplicate():
         data={"category": "image"},
     )
     assert resp2.status_code == 200
-    assert resp2.json()["doc_id"] == doc_id_1  # same checksum → same doc_id
+    assert resp2.json()["doc_id"] == doc_id_1
 
 
-# ─── Job status ────────────────────────────────────────────────────────────
 
 
 def test_get_job_valid():
@@ -140,7 +136,6 @@ def test_get_job_not_found():
     assert response.status_code == 404
 
 
-# ─── Query (stub — được giữ để kiểm tra route tồn tại) ─────────────────────
 
 
 def test_query_empty():
