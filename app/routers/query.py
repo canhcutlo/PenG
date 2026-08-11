@@ -1,19 +1,30 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import QueryResponse, Citation, QueryResult
 from app.services.rag import query_documents
-from app.db.sqlite_store import log_activity
+from app.db.sqlite_store import log_activity, get_document
+from app.services.auth import require_auth
 
 router = APIRouter()
 
 
 @router.get("/query", response_model=QueryResponse)
-async def query_materials(q: str, top_k: int = 5, doc_id: str = ""):
+async def query_materials(
+    q: str,
+    top_k: int = 5,
+    doc_id: str = "",
+    user: dict = Depends(require_auth),
+):
     """Query indexed learning materials via LightRAG and return answer with citations."""
     if not q.strip():
         return QueryResponse(answer="", citations=[], related_chunks=[])
 
+    if doc_id:
+        doc = get_document(doc_id, user["user_id"])
+        if not doc:
+            raise HTTPException(status_code=404, detail=f"Document {doc_id} not found")
+
     try:
-        result = await query_documents(q.strip(), top_k=top_k, mode="naive")
+        result = await query_documents(q.strip(), top_k=top_k, mode="naive", user_id=user["user_id"])
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Query failed: {exc}")
 
@@ -22,7 +33,7 @@ async def query_materials(q: str, top_k: int = 5, doc_id: str = ""):
     related = result.get("related_chunks", [])
 
     if doc_id:
-        log_activity(doc_id, "viewed", {"query": q, "answer_length": len(answer)})
+        log_activity(doc_id, "viewed", user["user_id"], {"query": q, "answer_length": len(answer)})
 
     return QueryResponse(
         answer=answer,

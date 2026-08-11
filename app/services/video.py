@@ -1,11 +1,13 @@
-"""Video analysis: scene detection + keyframe OCR."""
+"""Video analysis: scene detection + keyframe OCR + audio STT."""
 import os
+import shutil
 import tempfile
 from pathlib import Path
 from moviepy import VideoFileClip
 from scenedetect import detect, AdaptiveDetector
 from scenedetect import FrameTimecode
 from app.services.ocr import ocr_image
+from app.services.stt import transcribe_audio_with_timestamps
 from app.config import settings
 
 MAX_KEYFRAMES = 20
@@ -13,8 +15,8 @@ MAX_KEYFRAMES = 20
 
 async def analyze_video(video_path: str) -> dict:
     """
-    Detect scenes in a video and OCR the first frame of each scene.
-    Returns dict with text, scene metadata, and optional audio path.
+    Detect scenes in a video, OCR the first frame of each scene, and transcribe audio.
+    Returns dict with merged text, scene metadata, segments, and duration.
     """
     video_path = Path(video_path)
     if not video_path.exists():
@@ -33,17 +35,17 @@ async def analyze_video(video_path: str) -> dict:
         scene_list = _sample_timecodes(clip, sample_count)
 
     scenes = []
-    texts = []
+    scene_texts = []
     for i, (start_tc, end_tc) in enumerate(scene_list[:MAX_KEYFRAMES]):
-        start_sec = float(start_tc.get_seconds())
-        end_sec = float(end_tc.get_seconds())
+        start_sec = float(start_tc.seconds)
+        end_sec = float(end_tc.seconds)
         frame_path = keyframe_dir / f"scene_{i:04d}.png"
         clip.save_frame(str(frame_path), t=start_sec)
         frame_text = await ocr_image(str(frame_path))
         os.remove(str(frame_path))
 
         if frame_text.strip():
-            texts.append(f"[Scene {i} at {start_sec:.1f}s]:\n{frame_text}")
+            scene_texts.append(f"[Scene {i} at {start_sec:.1f}s]:\n{frame_text}")
 
         scenes.append(
             {
@@ -60,11 +62,45 @@ async def analyze_video(video_path: str) -> dict:
     except OSError:
         pass
 
+    audio_texts = []
+    audio_segments = []
+    audio_path = None
+    try:
+        audio_path = await extract_audio_track(video_path)
+        stt_result = await transcribe_audio_with_timestamps(str(audio_path))
+        audio_segments = stt_result.get("segments", [])
+        for seg in audio_segments:
+            audio_texts.append(f"[Audio {seg['start']:.1f}s-{seg['end']:.1f}s]: {seg['text']}")
+    except Exception:
+        pass
+    finally:
+        if audio_path and os.path.exists(audio_path):
+            try:
+                os.remove(audio_path)
+                audio_dir = Path(audio_path).parent
+                if audio_dir.exists():
+                    audio_dir.rmdir()
+            except OSError:
+                pass
+
+    merged = _merge_scene_and_audio(scene_texts, audio_texts)
+
     return {
-        "text": "\n\n".join(texts),
+        "text": merged,
         "scenes": scenes,
+        "audio_segments": audio_segments,
         "duration": duration,
     }
+
+
+def _merge_scene_and_audio(scene_texts: list[str], audio_texts: list[str]) -> str:
+    """Combine scene OCR and audio transcript into one structured text."""
+    parts = []
+    if scene_texts:
+        parts.append("## Visual content\n\n" + "\n\n".join(scene_texts))
+    if audio_texts:
+        parts.append("## Audio transcript\n\n" + "\n\n".join(audio_texts))
+    return "\n\n".join(parts)
 
 
 def _sample_timecodes(clip, count: int) -> list:

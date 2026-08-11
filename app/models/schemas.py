@@ -5,6 +5,26 @@ from typing import Literal
 
 
 
+class UserRegister(BaseModel):
+    username: str = Field(min_length=3, max_length=32)
+    password: str = Field(max_length=128)
+
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+
+class UserMe(BaseModel):
+    user_id: str
+    username: str
+
+
+class AuthResponse(BaseModel):
+    user_id: str
+    username: str
+
+
 class Document(BaseModel):
     doc_id: str
     filename: str
@@ -131,6 +151,27 @@ class MindmapNode(BaseModel):
 
 
 
+class Artifact(BaseModel):
+    artifact_id: str
+    doc_id: str
+    user_id: str
+    type: Literal["summary", "mindmap"]
+    version: int
+    status: Literal["queued", "processing", "completed", "failed"]
+    content: str | None = None
+    input_snapshot: dict | None = None
+    language: str | None = None
+    model_id: str | None = None
+    llm_config: dict | None = None
+    generation_params: dict | None = None
+    prompt_version: str | None = None
+    attempts: int = 0
+    error_message: str | None = None
+    created_at: datetime | None = None
+
+
+
+
 class LearningActivity(BaseModel):
     id: int | None = None
     doc_id: str
@@ -139,6 +180,79 @@ class LearningActivity(BaseModel):
     created_at: datetime | None = None
 
 
+
+
+class ChatSessionCreate(BaseModel):
+    doc_id: str
+    title: str | None = None
+
+
+class ChatSession(BaseModel):
+    session_id: str
+    user_id: str
+    doc_id: str
+    title: str | None = None
+    created_at: datetime
+    updated_at: datetime | None = None
+
+
+class ChatMessageCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=4000)
+    mode: Literal["document_and_related"] = "document_and_related"
+
+
+class RelatedDocument(BaseModel):
+    doc_id: str
+    title: str | None = None
+    relation_type: str
+
+
+class RelatedNode(BaseModel):
+    node_id: str
+    document_id: str
+    title: str | None = None
+    relation_type: str
+
+
+class ChatMessageResponse(BaseModel):
+    message_id: str
+    session_id: str
+    answer: str
+    citations: list[Citation] = []
+    related_documents: list[RelatedDocument] = []
+    related_nodes: list[RelatedNode] = []
+    warnings: list[str] = []
+    model_id: str | None = None
+    prompt_version: str | None = None
+
+
+class KnowledgeNodeResponse(BaseModel):
+    node_id: str
+    document_id: str
+    title: str | None = None
+    summary: str | None = None
+    mindmap_markdown: str | None = None
+    language: str | None = None
+    labels: list[str] = []
+    internal_consistency: float
+    evidence_coverage: float
+    extraction_quality: float
+    status: str
+    version: int
+    created_at: datetime
+
+
+class KnowledgeEdgeResponse(BaseModel):
+    edge_id: str
+    source_node_id: str
+    source_doc_id: str
+    target_node_id: str
+    target_doc_id: str
+    relation_type: str
+    similarity_score: float
+    evidence: dict
+    status: str
+    created_at: datetime
 
 
 class ErrorResponse(BaseModel):

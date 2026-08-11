@@ -18,7 +18,7 @@
             --text: #e8eaf0;
             --text-secondary: #9ca3b8;
             --text-muted: #6b7194;
-            --accent: #7c73ff;
+            --accent: #7c74ff;
             --accent-hover: #6a62ee;
             --accent-glow: rgba(124,115,255,.25);
             --accent-soft: rgba(124,115,255,.1);
@@ -119,6 +119,14 @@
         .status-dot.checking { animation: pulse 1.5s ease infinite; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
 
+        .user-bar {
+            display: flex; align-items: center; gap: var(--space-4);
+            font-size: .85rem;
+        }
+        .user-bar .username {
+            color: var(--accent); font-weight: 600;
+        }
+
         .tabs {
             display: flex; gap: var(--space-2); padding: var(--space-4) 0 0;
             overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -163,7 +171,7 @@
         .card h3 { font-size: .9rem; margin: var(--space-4) 0 var(--space-2); color: var(--text-secondary); font-weight: 600; }
 
         label { display: block; font-size: .825rem; color: var(--text-secondary); margin-bottom: var(--space-2); font-weight: 500; }
-        input[type="text"], input[type="number"], select, textarea {
+        input[type="text"], input[type="number"], input[type="password"], select, textarea {
             width: 100%; padding: 10px 14px; border: 1px solid var(--border);
             border-radius: var(--radius-sm); background: var(--surface2); color: var(--text);
             font-size: .875rem; outline: none; transition: border var(--transition), box-shadow var(--transition);
@@ -389,6 +397,57 @@
             font-size: .825rem; color: var(--accent);
         }
 
+        .auth-overlay {
+            position: fixed; inset: 0; z-index: 200;
+            background: var(--bg);
+            display: flex; align-items: center; justify-content: center;
+            padding: var(--space-5);
+        }
+        .auth-card {
+            width: 100%; max-width: 400px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-8);
+            box-shadow: var(--shadow-lg);
+        }
+        .auth-card h2 {
+            font-size: 1.5rem; font-weight: 800; margin-bottom: var(--space-2);
+            letter-spacing: -.5px;
+        }
+        .auth-card .subtitle {
+            color: var(--text-secondary); font-size: .875rem; margin-bottom: var(--space-6);
+        }
+        .auth-toggle {
+            text-align: center; margin-top: var(--space-5); font-size: .85rem; color: var(--text-secondary);
+        }
+        .auth-toggle button {
+            background: none; border: none; color: var(--accent); cursor: pointer;
+            font-weight: 600; font-size: .85rem; padding: 0;
+        }
+        .auth-toggle button:hover { text-decoration: underline; }
+        .auth-toggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+        .doc-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: var(--space-5);
+            margin-bottom: var(--space-4);
+            transition: border-color var(--transition);
+        }
+        .doc-card:hover { border-color: var(--border-light); }
+        .doc-card .doc-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-3);
+        }
+        .doc-card .doc-title { font-weight: 700; font-size: .95rem; }
+        .doc-card .doc-meta { color: var(--text-muted); font-size: .75rem; }
+        .doc-card .artifact-status {
+            display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-3);
+        }
+        .doc-card .artifact-status .tag { font-size: .7rem; }
+
         @media (max-width: 640px) {
             html { font-size: 14px; }
             .container { padding: 0 var(--space-4); }
@@ -402,6 +461,7 @@
             .quick-actions .btn { width: 100%; justify-content: center; }
             .workspace-hero { grid-template-columns: 1fr; gap: var(--space-5); padding: 28px 0 20px; }
             .workspace-hero h1 { font-size: 2.3rem; }
+            .auth-card { padding: var(--space-6); }
         }
 
         .hidden { display: none !important; }
@@ -441,6 +501,52 @@
 </head>
 <body>
 
+<div id="authOverlay" class="auth-overlay" aria-live="polite">
+    <div class="auth-card">
+        <div class="logo" style="margin-bottom:var(--space-6)">PenG</div>
+        <div id="authPanel">
+            <div id="loginForm">
+                <h2>Đăng nhập</h2>
+                <p class="subtitle">Nhập tài khoản để truy cập workspace</p>
+                <div id="authError" class="hidden" role="alert"></div>
+                <div class="mt-12">
+                    <label for="loginUser">Username</label>
+                    <input type="text" id="loginUser" autocomplete="username" placeholder="username" required>
+                </div>
+                <div class="mt-12">
+                    <label for="loginPass">Password</label>
+                    <input type="password" id="loginPass" autocomplete="current-password" placeholder="password" required>
+                </div>
+                <div class="btn-group">
+                    <button class="btn" id="loginBtn" style="width:100%">Đăng nhập</button>
+                </div>
+                <div class="auth-toggle">
+                    Chưa có tài khoản? <button id="showRegister">Đăng ký</button>
+                </div>
+            </div>
+            <div id="registerForm" class="hidden">
+                <h2>Đăng ký</h2>
+                <p class="subtitle">Tạo tài khoản mới để bắt đầu học</p>
+                <div id="regError" class="hidden" role="alert"></div>
+                <div class="mt-12">
+                    <label for="regUser">Username</label>
+                    <input type="text" id="regUser" autocomplete="username" placeholder="3-32 ký tự, chữ/số/gạch" required>
+                </div>
+                <div class="mt-12">
+                    <label for="regPass">Password</label>
+                    <input type="password" id="regPass" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" required>
+                </div>
+                <div class="btn-group">
+                    <button class="btn" id="registerBtn" style="width:100%">Đăng ký</button>
+                </div>
+                <div class="auth-toggle">
+                    Đã có tài khoản? <button id="showLogin">Đăng nhập</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <header>
     <div class="container">
         <div class="logo">PenG</div>
@@ -448,20 +554,26 @@
             <span id="statusDot" class="status-dot checking"></span>
             <span id="healthBadge">Đang kiểm tra...</span>
         </div>
+        <div class="user-bar hidden" id="userBar">
+            <span class="username" id="displayUsername"></span>
+            <button class="btn ghost" id="logoutBtn" style="padding:6px 14px;font-size:.8rem;">Đăng xuất</button>
+        </div>
     </div>
 </header>
 
-<div class="container">
+<div class="container hidden" id="workspace">
     <nav class="tabs" role="tablist" aria-label="Chức năng chính">
-        <button class="tab-btn active" data-tab="upload" role="tab" aria-selected="true" aria-controls="tab-upload" id="tabBtn-upload" tabindex="0">Upload</button>
+        <button class="tab-btn active" data-tab="documents" role="tab" aria-selected="true" aria-controls="tab-documents" id="tabBtn-documents" tabindex="0">Tài liệu</button>
+        <button class="tab-btn" data-tab="upload" role="tab" aria-selected="false" aria-controls="tab-upload" id="tabBtn-upload" tabindex="-1">Upload</button>
         <button class="tab-btn" data-tab="query" role="tab" aria-selected="false" aria-controls="tab-query" id="tabBtn-query" tabindex="-1">Hỏi đáp</button>
+        <button class="tab-btn" data-tab="chat" role="tab" aria-selected="false" aria-controls="tab-chat" id="tabBtn-chat" tabindex="-1">Chat</button>
         <button class="tab-btn" data-tab="quiz" role="tab" aria-selected="false" aria-controls="tab-quiz" id="tabBtn-quiz" tabindex="-1">Quiz</button>
         <button class="tab-btn" data-tab="mindmap" role="tab" aria-selected="false" aria-controls="tab-mindmap" id="tabBtn-mindmap" tabindex="-1">Mindmap</button>
         <button class="tab-btn" data-tab="history" role="tab" aria-selected="false" aria-controls="tab-history" id="tabBtn-history" tabindex="-1">Lịch sử</button>
     </nav>
 </div>
 
-<div class="container">
+<div class="container hidden" id="workspacePanels">
     <section class="workspace-hero" aria-labelledby="workspaceTitle">
         <div>
             <div class="workspace-kicker">Study workspace</div>
@@ -474,7 +586,18 @@
             <span>PenG sẽ xử lý và chuẩn bị nội dung cho các công cụ học tập.</span>
         </div>
     </section>
-    <section id="tab-upload" class="tab-panel active" role="tabpanel" aria-labelledby="tabBtn-upload">
+
+    <section id="tab-documents" class="tab-panel active" role="tabpanel" aria-labelledby="tabBtn-documents">
+        <div class="card">
+            <div class="flex-between">
+                <h2 style="margin:0">Tài liệu của tôi</h2>
+                <button class="btn secondary" id="refreshDocs" style="padding:6px 14px;font-size:.8rem;">Làm mới</button>
+            </div>
+            <div id="documentsArea" class="mt-12" aria-live="polite"></div>
+        </div>
+    </section>
+
+    <section id="tab-upload" class="tab-panel" role="tabpanel" aria-labelledby="tabBtn-upload">
         <div class="card">
             <h2>Upload tài liệu học tập</h2>
             <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="Khu vực kéo thả hoặc chọn file">
@@ -540,13 +663,43 @@
         </div>
     </section>
 
+    <section id="tab-chat" class="tab-panel" role="tabpanel" aria-labelledby="tabBtn-chat">
+        <div class="card">
+            <h2>Chat với tài liệu</h2>
+            <div class="form-row">
+                <div>
+                    <label for="chatDocId">Document ID</label>
+                    <input type="text" id="chatDocId" placeholder="Nhập doc_id hoặc chọn từ danh sách tài liệu...">
+                </div>
+                <div style="flex:0 0 auto;display:flex;align-items:flex-end;">
+                    <button class="btn" id="createSessionBtn">Tạo phiên chat</button>
+                </div>
+            </div>
+            <div id="chatSessionList" class="mt-8" aria-live="polite"></div>
+            <div id="chatArea" class="hidden mt-12" aria-live="polite">
+                <div id="chatHeader" class="flex-between mb-8"></div>
+                <div id="chatMessages" style="max-height:50vh;overflow-y:auto;padding:var(--space-3) 0;"></div>
+                <div id="chatInputRow" class="form-row mt-8">
+                    <div style="flex:1">
+                        <label for="chatInput">Tin nhắn</label>
+                        <textarea id="chatInput" placeholder="Hỏi về nội dung tài liệu..." rows="2"></textarea>
+                    </div>
+                    <div style="flex:0 0 auto;display:flex;align-items:flex-end;">
+                        <button class="btn" id="sendChatBtn">Gửi</button>
+                    </div>
+                </div>
+            </div>
+            <div id="chatKnowledge" class="hidden mt-12" aria-live="polite"></div>
+        </div>
+    </section>
+
     <section id="tab-quiz" class="tab-panel" role="tabpanel" aria-labelledby="tabBtn-quiz">
         <div class="card">
             <h2>Tạo Quiz từ tài liệu</h2>
             <div class="form-row">
                 <div>
                     <label for="quizDocId">Document ID</label>
-                    <input type="text" id="quizDocId" placeholder="Nhập doc_id hoặc upload trước...">
+                    <input type="text" id="quizDocId" placeholder="Nhập doc_id hoặc chọn từ danh sách tài liệu...">
                 </div>
                 <div>
                     <label for="quizNum">Số câu hỏi</label>
@@ -567,7 +720,7 @@
             <div class="form-row">
                 <div>
                     <label for="mindmapDocId">Document ID</label>
-                    <input type="text" id="mindmapDocId" placeholder="Nhập doc_id hoặc upload trước...">
+                    <input type="text" id="mindmapDocId" placeholder="Nhập doc_id hoặc chọn từ danh sách tài liệu...">
                 </div>
             </div>
             <div class="btn-group">
@@ -595,7 +748,6 @@
 
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => document.querySelectorAll(sel);
-    const API = "";
 
     function el(tag, attrs, ...children) {
         const node = document.createElement(tag);
@@ -614,9 +766,35 @@
         return node;
     }
 
+    function getCookie(name) {
+        const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}() [\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+        return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    async function apiFetch(url, opts = {}) {
+        const isMutating = opts.method && opts.method !== 'GET';
+        const headers = opts.headers || {};
+        if (isMutating) {
+            const csrf = getCookie('peng_csrf');
+            if (csrf) {
+                headers['X-CSRF-Token'] = csrf;
+            }
+        }
+        const res = await fetch(url, { ...opts, credentials: 'include', headers });
+        if (!res.ok) {
+            let detail = res.statusText;
+            try { detail = (await res.json()).detail || detail; } catch {}
+            const err = new Error(detail);
+            err.status = res.status;
+            throw err;
+        }
+        if (res.status === 204) return null;
+        return res.json();
+    }
+
     function showAlert(container, type, message) {
         if (!container) return;
-        const alert = el("div", { className: `alert ${type}`, role: "alert" }, message);
+        const alert = el("div", { className: "alert " + type, role: "alert" }, message);
         container.prepend(alert);
         setTimeout(() => alert.remove(), 6000);
     }
@@ -632,14 +810,36 @@
         );
     }
 
-    async function apiFetch(url, opts = {}) {
-        const res = await fetch(API + url, { ...opts });
-        if (!res.ok) {
-            let detail = res.statusText;
-            try { detail = (await res.json()).detail || detail; } catch {}
-            throw new Error(detail);
+    let currentUser = null;
+
+    async function checkAuth() {
+        try {
+            currentUser = await apiFetch("/api/auth/me");
+            showWorkspace();
+        } catch (err) {
+            if (err.status === 401) {
+                showAuthGate();
+            } else {
+                showAuthGate();
+            }
         }
-        return res.json();
+    }
+
+    function showAuthGate() {
+        $("#authOverlay").classList.remove("hidden");
+        $("#workspace").classList.add("hidden");
+        $("#workspacePanels").classList.add("hidden");
+        $("#userBar").classList.add("hidden");
+    }
+
+    function showWorkspace() {
+        $("#authOverlay").classList.add("hidden");
+        $("#workspace").classList.remove("hidden");
+        $("#workspacePanels").classList.remove("hidden");
+        $("#userBar").classList.remove("hidden");
+        $("#displayUsername").textContent = currentUser.username;
+        loadDocuments();
+        checkHealth();
     }
 
     async function checkHealth() {
@@ -649,14 +849,115 @@
             const data = await apiFetch("/api/health");
             const ok = data.db === "ok";
             badge.textContent = ok ? "Hệ thống hoạt động" : "DB lỗi";
-            dot.className = `status-dot ${ok ? "ok" : "err"}`;
+            dot.className = "status-dot " + (ok ? "ok" : "err");
         } catch {
             badge.textContent = "Không kết nối được";
             dot.className = "status-dot err";
         }
     }
-    checkHealth();
-    setInterval(checkHealth, 60000);
+
+    $("#loginBtn").addEventListener("click", async () => {
+        const username = $("#loginUser").value.trim();
+        const password = $("#loginPass").value;
+        if (!username || !password) {
+            showAuthError("authError", "Vui lòng nhập username và password.");
+            return;
+        }
+        $("#loginBtn").disabled = true;
+        $("#loginBtn").innerHTML = '<span class="spinner"></span> Đang đăng nhập...';
+        try {
+            const data = await apiFetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+            });
+            currentUser = data;
+            showWorkspace();
+            $("#loginUser").value = "";
+            $("#loginPass").value = "";
+        } catch (err) {
+            showAuthError("authError", err.message);
+        } finally {
+            $("#loginBtn").disabled = false;
+            $("#loginBtn").textContent = "Đăng nhập";
+        }
+    });
+
+    $("#registerBtn").addEventListener("click", async () => {
+        const username = $("#regUser").value.trim();
+        const password = $("#regPass").value;
+        if (!username || !password) {
+            showAuthError("regError", "Vui lòng nhập username và password.");
+            return;
+        }
+        if (password.length < 8) {
+            showAuthError("regError", "Password phải có ít nhất 8 ký tự.");
+            return;
+        }
+        $("#registerBtn").disabled = true;
+        $("#registerBtn").innerHTML = '<span class="spinner"></span> Đang đăng ký...';
+        try {
+            await apiFetch("/api/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+            });
+            showAuthSuccess("regError", "Đăng ký thành công! Vui lòng đăng nhập.");
+            switchToLogin();
+        } catch (err) {
+            showAuthError("regError", err.message);
+        } finally {
+            $("#registerBtn").disabled = false;
+            $("#registerBtn").textContent = "Đăng ký";
+        }
+    });
+
+    function showAuthError(containerId, message) {
+        const c = $(`#${containerId}`);
+        c.classList.remove("hidden");
+        c.className = "alert error";
+        c.textContent = message;
+    }
+
+    function showAuthSuccess(containerId, message) {
+        const c = $(`#${containerId}`);
+        c.classList.remove("hidden");
+        c.className = "alert success";
+        c.textContent = message;
+    }
+
+    function switchToLogin() {
+        $("#loginForm").classList.remove("hidden");
+        $("#registerForm").classList.add("hidden");
+        $("#authError").classList.add("hidden");
+        $("#regError").classList.add("hidden");
+    }
+
+    function switchToRegister() {
+        $("#loginForm").classList.add("hidden");
+        $("#registerForm").classList.remove("hidden");
+        $("#authError").classList.add("hidden");
+        $("#regError").classList.add("hidden");
+    }
+
+    $("#showRegister").addEventListener("click", switchToRegister);
+    $("#showLogin").addEventListener("click", switchToLogin);
+
+    $("#loginPass").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); $("#loginBtn").click(); }
+    });
+    $("#regPass").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); $("#registerBtn").click(); }
+    });
+
+    $("#logoutBtn").addEventListener("click", async () => {
+        try {
+            await apiFetch("/api/auth/logout", { method: "POST" });
+        } catch {}
+        currentUser = null;
+        if (pollInterval) clearInterval(pollInterval);
+        showAuthGate();
+    });
 
     const tabBtns = $$(".tab-btn");
     const tabPanels = $$(".tab-panel");
@@ -675,6 +976,7 @@
         currentTabIndex = index;
         const tab = tabBtns[index].dataset.tab;
         if (tab === "history") loadHistory();
+        if (tab === "documents") loadDocuments();
     }
 
     tabBtns.forEach((btn, index) => {
@@ -730,9 +1032,9 @@
     function handleFile(file) {
         selectedFileObj = file;
         const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-        selectedFile.value = `${file.name} (${sizeMB} MB)`;
+        selectedFile.value = file.name + " (" + sizeMB + " MB)";
         fileName.textContent = file.name;
-        fileSize.textContent = `${sizeMB} MB`;
+        fileSize.textContent = sizeMB + " MB";
         fileInfo.classList.add("visible");
         dropZone.classList.add("has-file");
         uploadBtn.disabled = false;
@@ -767,6 +1069,7 @@
         lastDocId = docId;
         $("#quizDocId").value = docId;
         $("#mindmapDocId").value = docId;
+        $("#chatDocId").value = docId;
     }
 
     let pollInterval = null;
@@ -791,7 +1094,7 @@
             const successMsg = el("div", {},
                 el("div", { className: "flex-between mb-8" },
                     el("span", {}, "Upload thành công!"),
-                    el("span", { className: `tag ${data.status === "completed" ? "completed" : "queued"}` }, data.status)
+                    el("span", { className: "tag " + (data.status === "completed" ? "completed" : "queued") }, data.status)
                 ),
                 el("div", { className: "doc-id-display" },
                     el("span", {}, "Doc ID: " + data.doc_id),
@@ -816,7 +1119,7 @@
             if (data.job_id && data.status !== "completed") {
                 jobProgress.classList.remove("hidden");
                 jobStatusTag.textContent = data.status;
-                jobStatusTag.className = `tag ${data.status}`;
+                jobStatusTag.className = "tag " + data.status;
                 pollJob(data.job_id);
             }
 
@@ -826,24 +1129,37 @@
             quickActions.appendChild(
                 el("button", {
                     className: "btn ghost",
-                    onclick: () => { activateTab(1); $("#queryInput").focus(); }
+                    onclick: () => { activateTab(2); $("#queryInput").focus(); }
                 }, "Hỏi đáp ngay")
             );
             quickActions.appendChild(
                 el("button", {
                     className: "btn ghost",
-                    onclick: () => { activateTab(2); }
+                    onclick: () => { activateTab(3); }
+                }, "Chat")
+            );
+            quickActions.appendChild(
+                el("button", {
+                    className: "btn ghost",
+                    onclick: () => { activateTab(4); }
                 }, "Tạo Quiz")
             );
             quickActions.appendChild(
                 el("button", {
                     className: "btn ghost",
-                    onclick: () => { activateTab(3); }
+                    onclick: () => { activateTab(5); }
                 }, "Tạo Mindmap")
+            );
+            quickActions.appendChild(
+                el("button", {
+                    className: "btn ghost",
+                    onclick: () => { activateTab(0); loadDocuments(); }
+                }, "Xem tài liệu")
             );
             uploadResult.appendChild(quickActions);
 
             clearFileSelection();
+            loadDocuments();
         } catch (err) {
             uploadResult.classList.remove("hidden");
             showAlert(uploadResult, "error", "Upload thất bại: " + err.message);
@@ -1065,7 +1381,7 @@
             scoreDiv.appendChild(
                 el("div", { className: "quiz-score card" },
                     el("div", { className: "pct " + pctClass }, pct + "%"),
-                    el("div", { className: "text-sm text-secondary" }, "Đúng " + result.score + "/" + result.total + " câu")
+                    el("div", { className: "text-sm text-secondary" }, "Đúng " + result.score + "/" + result.total + " c\u00e2u")
                 )
             );
 
@@ -1240,6 +1556,9 @@
             viewed: "Xem / Hỏi đáp",
             quizzed: "Làm Quiz",
             mindmapped: "Tạo Mindmap",
+            summary_generated: "Tạo Summary",
+            mindmap_generated: "Tạo Mindmap",
+            artifact_failed: "Lỗi Artifact",
         };
         return labels[action] || action;
     }
@@ -1253,6 +1572,594 @@
     }
 
     $("#refreshHistory").addEventListener("click", loadHistory);
+
+    const documentsArea = $("#documentsArea");
+
+    async function loadDocuments() {
+        documentsArea.innerHTML = '<div class="loading"><span class="spinner"></span> Đang tải tài liệu...</div>';
+        try {
+            const docs = await apiFetch("/api/documents?limit=50");
+            documentsArea.innerHTML = "";
+            if (!docs.length) {
+                showEmptyState(documentsArea, "&#128194;", "Chưa có tài liệu nào. Hãy upload tài liệu đầu tiên.");
+                return;
+            }
+
+            docs.forEach((doc) => {
+                const card = buildDocCard(doc);
+                documentsArea.appendChild(card);
+            });
+        } catch (err) {
+            documentsArea.innerHTML = "";
+            showAlert(documentsArea, "error", "Lỗi tải tài liệu: " + err.message);
+        }
+    }
+
+    function buildDocCard(doc) {
+        const card = el("div", { className: "doc-card" });
+
+        const header = el("div", { className: "doc-header" });
+        const titleWrap = el("div");
+        titleWrap.appendChild(el("div", { className: "doc-title" }, doc.original_name || doc.filename));
+        titleWrap.appendChild(el("div", { className: "doc-meta" },
+            doc.doc_id + " \u00b7 " + doc.category + " \u00b7 " + formatFileSize(doc.file_size)
+        ));
+        header.appendChild(titleWrap);
+
+        const statusTag = el("span", { className: "tag " + (doc.status || "queued") }, doc.status || "queued");
+        header.appendChild(statusTag);
+        card.appendChild(header);
+
+        const actions = el("div", { className: "btn-group mt-8" });
+        actions.appendChild(
+            el("button", {
+                className: "btn ghost",
+                style: "font-size:.78rem;padding:6px 12px;",
+                onclick: () => { autoFillDocId(doc.doc_id); activateTab(2); }
+            }, "Hỏi đáp")
+        );
+        actions.appendChild(
+            el("button", {
+                className: "btn ghost",
+                style: "font-size:.78rem;padding:6px 12px;",
+                onclick: () => { autoFillDocId(doc.doc_id); activateTab(3); }
+            }, "Chat")
+        );
+        actions.appendChild(
+            el("button", {
+                className: "btn ghost",
+                style: "font-size:.78rem;padding:6px 12px;",
+                onclick: () => { autoFillDocId(doc.doc_id); activateTab(4); }
+            }, "Quiz")
+        );
+        actions.appendChild(
+            el("button", {
+                className: "btn ghost",
+                style: "font-size:.78rem;padding:6px 12px;",
+                onclick: () => { autoFillDocId(doc.doc_id); activateTab(5); }
+            }, "Mindmap")
+        );
+        actions.appendChild(
+            el("button", {
+                className: "btn ghost",
+                style: "font-size:.78rem;padding:6px 12px;",
+                onclick: () => loadDocArtifacts(doc.doc_id, card)
+            }, "Artifacts")
+        );
+        actions.appendChild(
+            el("button", {
+                className: "btn ghost",
+                style: "font-size:.78rem;padding:6px 12px;",
+                onclick: () => { autoFillDocId(doc.doc_id); loadKnowledgePanel(doc.doc_id); }
+            }, "Knowledge")
+        );
+        card.appendChild(actions);
+
+        const artifactArea = el("div", { className: "mt-12 hidden", "data-artifact-area": doc.doc_id });
+        card.appendChild(artifactArea);
+
+        return card;
+    }
+
+    async function loadDocArtifacts(docId, card) {
+        const area = card.querySelector('[data-artifact-area="' + docId + '"]');
+        if (!area.classList.contains("hidden")) {
+            area.classList.add("hidden");
+            return;
+        }
+        area.classList.remove("hidden");
+        area.innerHTML = '<div class="loading"><span class="spinner"></span> Đang tải artifacts...</div>';
+
+        try {
+            const artifacts = await apiFetch("/api/documents/" + encodeURIComponent(docId) + "/artifacts");
+            area.innerHTML = "";
+
+            if (!artifacts.length) {
+                area.appendChild(el("p", { className: "text-sm text-dim" }, "Chưa có artifact nào. Tạo summary hoặc mindmap bên dưới."));
+            } else {
+                artifacts.forEach((art) => {
+                    const row = el("div", { className: "flex-between mt-8", style: "padding:8px 0;border-top:1px solid var(--border);" });
+                    const info = el("div");
+                    info.appendChild(el("div", { className: "text-sm" },
+                        (art.type === "summary" ? "Summary" : "Mindmap") + " v" + art.version
+                    ));
+                    info.appendChild(el("div", { className: "text-xs text-dim" },
+                        art.status + (art.created_at ? " \u00b7 " + formatDate(art.created_at) : "")
+                    ));
+                    row.appendChild(info);
+
+                    const btns = el("div", { className: "flex-center" });
+                    if (art.status === "completed" && art.content) {
+                        btns.appendChild(
+                            el("button", {
+                                className: "btn ghost",
+                                style: "font-size:.75rem;padding:4px 10px;",
+                                onclick: () => showArtifactContent(art, docId)
+                            }, "Xem")
+                        );
+                    }
+                    btns.appendChild(
+                        el("button", {
+                            className: "btn secondary",
+                            style: "font-size:.75rem;padding:4px 10px;",
+                            onclick: () => regenerateArtifact(docId, art.type, area)
+                        }, "Tạo lại")
+                    );
+                    row.appendChild(btns);
+                    area.appendChild(row);
+                });
+            }
+
+            const genBtns = el("div", { className: "btn-group" });
+            genBtns.appendChild(
+                el("button", {
+                    className: "btn ghost",
+                    style: "font-size:.78rem;padding:6px 12px;",
+                    onclick: () => regenerateArtifact(docId, "summary", area)
+                }, "Tạo Summary")
+            );
+            genBtns.appendChild(
+                el("button", {
+                    className: "btn ghost",
+                    style: "font-size:.78rem;padding:6px 12px;",
+                    onclick: () => regenerateArtifact(docId, "mindmap", area)
+                }, "Tạo Mindmap")
+            );
+            area.appendChild(genBtns);
+        } catch (err) {
+            area.innerHTML = "";
+            showAlert(area, "error", "Lỗi tải artifacts: " + err.message);
+        }
+    }
+
+    function showArtifactContent(art, docId) {
+        const overlay = el("div", {
+            className: "auth-overlay",
+            style: "z-index:300;",
+            onclick: (e) => { if (e.target === overlay) overlay.remove(); }
+        });
+        const panel = el("div", {
+            className: "auth-card",
+            style: "max-width:700px;max-height:80vh;overflow-y:auto;"
+        });
+        panel.appendChild(
+            el("div", { className: "flex-between mb-8" },
+                el("h3", { style: "margin:0;" }, (art.type === "summary" ? "Summary" : "Mindmap") + " v" + art.version),
+                el("button", {
+                    className: "btn ghost",
+                    style: "font-size:.78rem;padding:6px 12px;",
+                    onclick: () => overlay.remove()
+                }, "Đóng")
+            )
+        );
+        if (art.type === "mindmap" && art.content) {
+            const mmContainer = el("div", { className: "mindmap-container", style: "height:400px;" });
+            mmContainer.appendChild(el("div", { className: "markmap" }, art.content));
+            panel.appendChild(mmContainer);
+            setTimeout(() => {
+                if (window.markmap && window.markmap.autoLoader) {
+                    window.markmap.autoLoader.renderAll();
+                }
+            }, 100);
+            const dlBtns = el("div", { className: "btn-group mt-8" });
+            dlBtns.appendChild(
+                el("button", {
+                    className: "btn secondary",
+                    style: "font-size:.78rem;padding:6px 12px;",
+                    onclick: () => downloadText(docId + "-summary.md", art.content, "text/markdown;charset=utf-8")
+                }, "Tải Markdown")
+            );
+            panel.appendChild(dlBtns);
+        } else {
+            const contentBlock = el("div", {
+                className: "result",
+                style: "max-height:60vh;"
+            }, art.content || "(không có nội dung)");
+            panel.appendChild(contentBlock);
+            panel.appendChild(
+                el("button", {
+                    className: "btn secondary mt-8",
+                    style: "font-size:.78rem;padding:6px 12px;",
+                    onclick: () => downloadText(docId + "-summary.md", art.content, "text/markdown;charset=utf-8")
+                }, "Tải Markdown")
+            );
+        }
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+    }
+
+    async function regenerateArtifact(docId, type, area) {
+        area.innerHTML = '<div class="loading"><span class="spinner"></span> Đang tạo ' + type + '...</div>';
+        try {
+            const art = await apiFetch("/api/documents/" + encodeURIComponent(docId) + "/artifacts/regenerate?artifact_type=" + type, {
+                method: "POST",
+            });
+            loadDocArtifacts(docId, area.closest(".doc-card"));
+        } catch (err) {
+            area.innerHTML = "";
+            showAlert(area, "error", "Lỗi tạo " + type + ": " + err.message);
+        }
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+        return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    $("#refreshDocs").addEventListener("click", loadDocuments);
+
+    $("#refreshDocs").addEventListener("click", loadDocuments);
+
+    let currentChatSessionId = null;
+    let currentChatDocId = null;
+    let chatSessionsCache = [];
+
+    const createSessionBtn = $("#createSessionBtn");
+    const chatSessionList = $("#chatSessionList");
+    const chatArea = $("#chatArea");
+    const chatHeader = $("#chatHeader");
+    const chatMessages = $("#chatMessages");
+    const chatInput = $("#chatInput");
+    const sendChatBtn = $("#sendChatBtn");
+    const chatKnowledge = $("#chatKnowledge");
+
+    createSessionBtn.addEventListener("click", async () => {
+        const docId = $("#chatDocId").value.trim();
+        if (!docId) { showAlert(chatSessionList, "error", "Vui lòng nhập Document ID."); return; }
+        currentChatDocId = docId;
+        createSessionBtn.disabled = true;
+        createSessionBtn.innerHTML = '<span class="spinner"></span> Đang tạo...';
+        try {
+            const session = await apiFetch("/api/chat/sessions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ doc_id: docId }),
+            });
+            currentChatSessionId = session.session_id;
+            chatArea.classList.remove("hidden");
+            chatHeader.innerHTML = "";
+            chatHeader.appendChild(
+                el("span", { className: "text-sm text-secondary" },
+                    "Phiên: " + session.session_id + " \u00b7 Doc: " + session.doc_id
+                )
+            );
+            if (session.title) {
+                chatHeader.appendChild(el("span", { className: "text-sm" }, session.title));
+            }
+            chatMessages.innerHTML = '<div class="empty-state"><p>Bắt đầu hỏi về tài liệu này.</p></div>';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            loadKnowledgePanel(docId);
+            loadChatSessions();
+        } catch (err) {
+            showAlert(chatSessionList, "error", "Lỗi tạo phiên: " + err.message);
+        } finally {
+            createSessionBtn.disabled = false;
+            createSessionBtn.textContent = "Tạo phiên chat";
+        }
+    });
+
+    sendChatBtn.addEventListener("click", async () => {
+        const content = chatInput.value.trim();
+        if (!content || !currentChatSessionId) return;
+        chatInput.value = "";
+        sendChatBtn.disabled = true;
+        sendChatBtn.innerHTML = '<span class="spinner"></span>';
+        appendChatMessage("user", content);
+        appendChatMessage("assistant", null, true);
+        try {
+            const resp = await apiFetch("/api/chat/" + encodeURIComponent(currentChatSessionId) + "/messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ content, mode: "document_and_related" }),
+            });
+            removeLoadingAssistant();
+            appendChatMessage("assistant", resp.answer, false, resp.citations, resp.related_documents, resp.related_nodes, resp.warnings);
+        } catch (err) {
+            removeLoadingAssistant();
+            appendChatMessage("assistant", "Lỗi: " + err.message, false, [], [], [], ["Không thể xử lý câu hỏi."]);
+        } finally {
+            sendChatBtn.disabled = false;
+            sendChatBtn.textContent = "Gửi";
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    });
+
+    chatInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            sendChatBtn.click();
+        }
+    });
+
+    function appendChatMessage(role, content, isLoading, citations, relatedDocs, relatedNodes, warnings) {
+        const wrap = el("div", {
+            className: "chat-msg",
+            style: "margin-bottom:var(--space-4);padding:var(--space-3);border-radius:var(--radius-sm);" +
+                (role === "user" ? "background:var(--surface2);border:1px solid var(--border);" : "background:var(--surface);border:1px solid var(--border-light);")
+        });
+        const roleLabel = el("div", {
+            className: "text-xs",
+            style: "font-weight:700;margin-bottom:var(--space-2);color:" + (role === "user" ? "var(--accent)" : "var(--success)") + ";"
+        }, role === "user" ? "Bạn" : "PenG");
+        wrap.appendChild(roleLabel);
+
+        if (isLoading) {
+            wrap.id = "chatLoadingMsg";
+            wrap.appendChild(el("div", { className: "loading" }, el("span", { className: "spinner" }), " Đang xử lý..."));
+        } else if (content) {
+            wrap.appendChild(el("div", { className: "result", style: "max-height:none;white-space:pre-wrap;" }, content));
+        }
+
+        if (citations && citations.length) {
+            wrap.appendChild(el("div", { className: "text-xs text-secondary mt-4", style: "font-weight:600;" }, "Trích dẫn"));
+            citations.forEach((c) => {
+                const meta = [
+                    c.doc_id ? "Doc: " + c.doc_id : "",
+                    c.page ? "Trang " + c.page : "",
+                    c.scene ? "Scene " + c.scene : "",
+                    c.timestamp != null ? formatTime(c.timestamp) : "",
+                ].filter(Boolean).join(" \u00b7 ");
+                wrap.appendChild(
+                    el("div", { className: "citation" },
+                        el("div", { className: "meta" }, meta || ""),
+                        el("div", {}, c.chunk_text || "")
+                    )
+                );
+            });
+        }
+
+        if (warnings && warnings.length) {
+            warnings.forEach((w) => {
+                wrap.appendChild(el("div", { className: "alert warning mt-4", role: "alert" }, w));
+            });
+        }
+
+        if (relatedDocs && relatedDocs.length) {
+            wrap.appendChild(el("div", { className: "text-xs text-secondary mt-4", style: "font-weight:600;" }, "Tài liệu liên quan"));
+            const rdWrap = el("div", { className: "mt-4" });
+            relatedDocs.forEach((rd) => {
+                rdWrap.appendChild(
+                    el("div", { className: "text-sm", style: "padding:var(--space-2) 0;border-bottom:1px solid var(--border);" },
+                        el("span", { style: "font-weight:600;" }, rd.doc_id),
+                        rd.title ? " \u00b7 " + rd.title : "",
+                        " \u00b7 " + rd.relation_type
+                    )
+                );
+            });
+            wrap.appendChild(rdWrap);
+        }
+
+        if (relatedNodes && relatedNodes.length) {
+            wrap.appendChild(el("div", { className: "text-xs text-secondary mt-4", style: "font-weight:600;" }, "Node liên quan"));
+            const rnWrap = el("div", { className: "mt-4" });
+            relatedNodes.forEach((rn) => {
+                rnWrap.appendChild(
+                    el("div", { className: "text-sm", style: "padding:var(--space-2) 0;border-bottom:1px solid var(--border);" },
+                        el("span", { style: "font-weight:600;" }, rn.node_id),
+                        rn.title ? " \u00b7 " + rn.title : "",
+                        " \u00b7 Doc: " + rn.document_id + " \u00b7 " + rn.relation_type
+                    )
+                );
+            });
+            wrap.appendChild(rnWrap);
+        }
+
+        chatMessages.appendChild(wrap);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function removeLoadingAssistant() {
+        const ld = document.getElementById("chatLoadingMsg");
+        if (ld) ld.remove();
+    }
+
+    async function loadChatSessions() {
+        chatSessionList.innerHTML = "";
+        try {
+            const sessions = await apiFetch("/api/chat/sessions?limit=20");
+            chatSessionsCache = sessions;
+            if (!sessions.length) {
+                chatSessionList.appendChild(el("p", { className: "text-sm text-dim" }, "Chưa có phiên chat nào."));
+                return;
+            }
+            const listWrap = el("div", { className: "tbl-wrap" });
+            const table = el("table", {},
+                el("thead", {},
+                    el("tr", {},
+                        el("th", {}, "Phiên"),
+                        el("th", {}, "Doc ID"),
+                        el("th", {}, "Tiêu đề"),
+                        el("th", {}, "Cập nhật")
+                    )
+                ),
+                el("tbody", {},
+                    ...sessions.map((s) =>
+                        el("tr", { style: "cursor:pointer;", onclick: () => openChatSession(s.session_id, s.doc_id) },
+                            el("td", { style: "font-family:monospace;font-size:.78rem;" }, s.session_id.slice(0, 12) + "..."),
+                            el("td", { style: "font-family:monospace;font-size:.78rem;" }, s.doc_id),
+                            el("td", { className: "text-sm" }, s.title || "\u2014"),
+                            el("td", { className: "text-xs text-dim" }, s.updated_at ? formatDate(s.updated_at) : "\u2014")
+                        )
+                    )
+                )
+            );
+            listWrap.appendChild(table);
+            chatSessionList.appendChild(listWrap);
+        } catch (err) {
+            chatSessionList.appendChild(el("p", { className: "text-sm error" }, "Lỗi tải phiên: " + err.message));
+        }
+    }
+
+    async function openChatSession(sessionId, docId) {
+        currentChatSessionId = sessionId;
+        currentChatDocId = docId;
+        $("#chatDocId").value = docId;
+        chatArea.classList.remove("hidden");
+        chatHeader.innerHTML = "";
+        chatHeader.appendChild(
+            el("span", { className: "text-sm text-secondary" }, "Phiên: " + sessionId + " \u00b7 Doc: " + docId)
+        );
+        chatMessages.innerHTML = '<div class="loading"><span class="spinner"></span> Đang tải tin nhắn...</div>';
+        try {
+            const data = await apiFetch("/api/chat/" + encodeURIComponent(sessionId));
+            chatMessages.innerHTML = "";
+            if (data.messages && data.messages.length) {
+                data.messages.forEach((m) => {
+                    const role = m.role === "user" ? "user" : "assistant";
+                    const cits = m.citations_json ? safeJson(m.citations_json) : [];
+                    const relDocs = m.related_nodes_json ? safeJson(m.related_nodes_json) : [];
+                    const warns = m.warnings_json ? safeJson(m.warnings_json) : [];
+                    appendChatMessage(role, m.content, false, cits, relDocs, [], warns);
+                });
+            } else {
+                chatMessages.appendChild(el("div", { className: "empty-state" }, el("p", {}, "Chưa có tin nhắn.")));
+            }
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        } catch (err) {
+            chatMessages.innerHTML = "";
+            showAlert(chatMessages, "error", "Lỗi tải tin nhắn: " + err.message);
+        }
+        loadKnowledgePanel(docId);
+    }
+
+    function safeJson(val) {
+        if (Array.isArray(val)) return val;
+        if (typeof val === "string") { try { return JSON.parse(val); } catch { return []; } }
+        return [];
+    }
+
+    async function loadKnowledgePanel(docId) {
+        chatKnowledge.classList.remove("hidden");
+        chatKnowledge.innerHTML = '<div class="loading"><span class="spinner"></span> Đang tải knowledge panel...</div>';
+        let nodeData = null;
+        let edgeData = null;
+        try {
+            nodeData = await apiFetch("/api/knowledge/nodes/" + encodeURIComponent(docId));
+        } catch {
+            nodeData = null;
+        }
+        try {
+            edgeData = await apiFetch("/api/knowledge/related/" + encodeURIComponent(docId));
+        } catch {
+            edgeData = null;
+        }
+        chatKnowledge.innerHTML = "";
+
+        if (!nodeData && !edgeData) {
+            chatKnowledge.appendChild(el("p", { className: "text-sm text-dim" }, "Chưa có knowledge data cho tài liệu này."));
+            return;
+        }
+
+        if (nodeData) {
+            const panel = el("div", { className: "card", style: "margin:0;" });
+            panel.appendChild(el("h3", { style: "margin:0 0 var(--space-3);" }, "Knowledge Node"));
+            panel.appendChild(el("div", { className: "text-sm" }, el("strong", {}, "Tiêu đề: "), nodeData.title || "\u2014"));
+            if (nodeData.summary) {
+                panel.appendChild(el("div", { className: "text-sm mt-4" }, el("strong", {}, "Tóm tắt: ")));
+                panel.appendChild(el("div", { className: "result", style: "max-height:200px;margin-top:var(--space-2);" }, nodeData.summary));
+            }
+            panel.appendChild(el("div", { className: "text-sm mt-4" },
+                el("strong", {}, "Ngôn ngữ: "), nodeData.language || "\u2014",
+                " \u00b7 ", el("strong", {}, "Trạng thái: "), nodeData.status,
+                " \u00b7 ", el("strong", {}, "Version: "), nodeData.version
+            ));
+
+            const reliabilityNote = el("div", { className: "alert info mt-4", role: "note" });
+            reliabilityNote.appendChild(
+                el("div", { className: "text-sm", style: "font-weight:600;" },
+                    "Internal Evidence Quality (KHÔNG phải độ chính xác sự thật)")
+            );
+            reliabilityNote.appendChild(
+                el("div", { className: "text-xs mt-4" },
+                    "Các chỉ số dưới đây đo chất lượng bằng chứng nội bộ và độ đầy đủ của dữ liệu trích xuất, " +
+                    "KHÔNG khẳng định tài liệu đúng hay sai về mặt thực tế.")
+            );
+            panel.appendChild(reliabilityNote);
+
+            const scores = [
+                { label: "Internal Consistency", value: nodeData.internal_consistency, desc: "Mức độ mâu thuẫn nội bộ trong tài liệu" },
+                { label: "Evidence Coverage", value: nodeData.evidence_coverage, desc: "Mức claim có chunk hỗ trợ" },
+                { label: "Extraction Quality", value: nodeData.extraction_quality, desc: "Chất lượng OCR/STT và độ đầy đủ text" },
+            ];
+            scores.forEach((s) => {
+                const pct = Math.round(s.value * 100);
+                const bar = el("div", { className: "mt-4" });
+                bar.appendChild(el("div", { className: "flex-between" },
+                    el("span", { className: "text-xs text-secondary" }, s.label + " (" + pct + "%)"),
+                    el("span", { className: "text-xs text-dim" }, s.desc)
+                ));
+                const barWrap = el("div", { className: "progress-bar mt-4", style: "height:4px;" });
+                const fill = el("div", { className: "fill", style: "width:" + pct + "%;" +
+                    (pct >= 70 ? "background:var(--success);" : pct >= 40 ? "background:var(--warning);" : "background:var(--error);") });
+                barWrap.appendChild(fill);
+                bar.appendChild(barWrap);
+                panel.appendChild(bar);
+            });
+
+            if (nodeData.labels && nodeData.labels.length) {
+                const labelWrap = el("div", { className: "mt-4" });
+                labelWrap.appendChild(el("div", { className: "text-xs text-secondary", style: "font-weight:600;" }, "Labels"));
+                nodeData.labels.forEach((l) => {
+                    labelWrap.appendChild(el("span", { className: "tag processing", style: "margin:var(--space-2);" }, l));
+                });
+                panel.appendChild(labelWrap);
+            }
+
+            chatKnowledge.appendChild(panel);
+        }
+
+        if (edgeData && edgeData.edges && edgeData.edges.length) {
+            const edgePanel = el("div", { className: "card", style: "margin:0;" });
+            edgePanel.appendChild(el("h3", { style: "margin:0 0 var(--space-3);" }, "Tài liệu liên quan"));
+            const wrap = el("div", { className: "tbl-wrap" });
+            const table = el("table", {},
+                el("thead", {},
+                    el("tr", {},
+                        el("th", {}, "Target Doc"),
+                        el("th", {}, "Relation"),
+                        el("th", {}, "Similarity"),
+                        el("th", {}, "Status")
+                    )
+                ),
+                el("tbody", {},
+                    ...edgeData.edges.map((e) =>
+                        el("tr", {},
+                            el("td", { style: "font-family:monospace;font-size:.78rem;" }, e.target_doc_id),
+                            el("td", { className: "text-sm" }, e.relation_type),
+                            el("td", { className: "text-sm" }, (e.similarity_score * 100).toFixed(0) + "%"),
+                            el("td", {}, el("span", { className: "tag " + (e.status === "accepted" ? "completed" : "processing") }, e.status))
+                        )
+                    )
+                )
+            );
+            wrap.appendChild(table);
+            edgePanel.appendChild(wrap);
+            chatKnowledge.appendChild(edgePanel);
+        }
+    }
+
+    checkAuth();
 
 })();
 </script>

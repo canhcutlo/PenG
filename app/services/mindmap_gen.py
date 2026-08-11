@@ -1,4 +1,4 @@
-"""Mindmap generation from document text using LLM, with sanitization."""
+"""Mindmap generation from document text using LLM, with sanitization and validation."""
 import re
 from app.services.llm import complete
 from app.services.prompts import build_mindmap_prompt
@@ -28,3 +28,30 @@ def sanitize_mindmap(raw: str) -> str:
             lines.append(line)
 
     return "\n".join(lines).strip()
+
+
+def validate_mindmap_structure(markdown: str) -> bool:
+    """Validate one H1, 3-7 H2, and 2-5 bullets per H2 branch."""
+    lines = [line.rstrip() for line in markdown.splitlines()]
+
+    h1_count = sum(1 for line in lines if re.match(r"^#\s+\S", line))
+    if h1_count != 1:
+        return False
+
+    h2_headers = [line for line in lines if re.match(r"^##\s+\S", line)]
+    if not (3 <= len(h2_headers) <= 7):
+        return False
+
+    current_bullets = 0
+    for line in lines:
+        if re.match(r"^##\s+\S", line):
+            if current_bullets > 0 and not (2 <= current_bullets <= 5):
+                return False
+            current_bullets = 0
+        elif re.match(r"^-\s+\S", line):
+            current_bullets += 1
+
+    if current_bullets > 0 and not (2 <= current_bullets <= 5):
+        return False
+
+    return True

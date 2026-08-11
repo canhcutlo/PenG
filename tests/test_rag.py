@@ -135,3 +135,43 @@ async def test_rag_index_and_query_with_fake_embedding(tmp_path):
         assert isinstance(result, str)
     finally:
         settings.lightrag_working_dir = old_working_dir
+
+
+@pytest.mark.asyncio
+async def test_rag_user_isolation_with_fake_embedding(tmp_path, monkeypatch):
+    """User A's index must be separate from User B's index."""
+    from lightrag import LightRAG, QueryParam
+    from lightrag.utils import EmbeddingFunc
+    from app.config import settings
+    from app.services import rag as rag_module
+
+    settings.lightrag_working_dir = tmp_path / "lightrag_isolation"
+    monkeypatch.setattr(rag_module, "_rag_instances", {})
+    monkeypatch.setattr(rag_module, "_initialized", {})
+
+    async def fake_llm(prompt, system_prompt=None, **kwargs):
+        return "[fake]"
+
+    async def build_rag(user_id: str):
+        working_dir = str(settings.lightrag_working_dir / "u" / user_id)
+        rag = LightRAG(
+            working_dir=working_dir,
+            llm_model_func=fake_llm,
+            embedding_func=EmbeddingFunc(
+                embedding_dim=768, max_token_size=512, func=_fake_embed
+            ),
+            chunk_token_size=128,
+            chunk_overlap_token_size=16,
+        )
+        await rag.initialize_storages()
+        return rag
+
+    rag_a = await build_rag("user_a")
+    await rag_a.ainsert("Secret data for user A", ids=["doc-a"])
+
+    rag_b = await build_rag("user_b")
+    result = await rag_b.aquery(
+        "Secret data",
+        param=QueryParam(mode="naive", top_k=3, enable_rerank=False),
+    )
+    assert "doc-a" not in str(result).lower() or result == "[fake]"

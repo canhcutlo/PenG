@@ -89,3 +89,28 @@ Text:
 
 def build_quiz_prompt(text: str, num_questions: int = 5) -> str:
     return QUIZ_PROMPT.format(text=text[:4000], num=num_questions, json_schema=QUIZ_JSON_SCHEMA)
+
+
+CHAT_PROMPT_VERSION = "chat_v1"
+
+CHAT_SYSTEM = (
+    "Bạn là trợ lý học tập. Chỉ trả lờI dựa trên bằng chứng được cung cấp. "
+    "Nếu thiếu bằng chứng, hãy nói rõ: 'Không tìm thấy đủ bằng chứng trong các tài liệu đã tải lên.' "
+    "Nếu có mâu thuẫn, trình bày cả hai nguồn và không tự chọn bên đúng. "
+    "Không thay đổi, bịa đặt, hoặc làm ảnh hưởng đến summary, quiz hay mindmap đã lưu. "
+    "Trích dẫn nguồn bằng [doc_id] và trang/cảnh/thờI gian nếu có."
+)
+
+CHAT_PROMPT = """Lịch sử trò chuyện:
+{history}
+
+Bằng chứng từ tài liệu:
+{context}
+
+Câu hỏi: {question}
+
+Trả lờI ngắn gọn, dựa trên bằng chứng, có trích dẫn nguồn. Nếu không đủ bằng chứng, nói rõ."""
+
+
+def build_chat_prompt(question: str, context: str, history: str = "") -> str:
+    return CHAT_PROMPT.format(question=question, context=context, history=history)

@@ -1,14 +1,21 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Request
 from app.models.schemas import LearningActivity
 from app.db.sqlite_store import get_activities, log_activity as db_log_activity
+from app.services.auth import require_auth, verify_csrf
 
 router = APIRouter()
 
 
+def _require_csrf():
+    def _check(request: Request):
+        verify_csrf(request)
+    return Depends(_check)
+
+
 @router.get("/history")
-async def get_learning_history(limit: int = 20):
+async def get_learning_history(limit: int = 20, user: dict = Depends(require_auth)):
     """Get recent learning activities from SQLite."""
-    rows = get_activities(limit)
+    rows = get_activities(user["user_id"], limit)
     return [
         {
             "id": r["id"],
@@ -22,9 +29,17 @@ async def get_learning_history(limit: int = 20):
 
 
 @router.post("/history")
-async def log_learning_activity(doc_id: str, action: str):
+async def log_learning_activity(
+    request: Request,
+    doc_id: str,
+    action: str,
+    user: dict = Depends(require_auth),
+    _csrf=_require_csrf(),
+):
     """Log a learning activity."""
-    if action not in ("uploaded", "viewed", "quizzed", "mindmapped"):
+    allowed = ("uploaded", "viewed", "quizzed", "mindmapped",
+               "summary_generated", "mindmap_generated", "artifact_failed")
+    if action not in allowed:
         raise HTTPException(status_code=400, detail=f"Invalid action: {action}")
-    db_log_activity(doc_id, action)
+    db_log_activity(doc_id, action, user["user_id"])
     return {"status": "ok", "doc_id": doc_id, "action": action}

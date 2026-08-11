@@ -49,6 +49,17 @@ class Settings(BaseSettings):
     process_on_upload: bool = True
     index_on_upload: bool = True
 
+    # Auth
+    auth_cookie_name: str = "peng_session"
+    auth_cookie_secure: bool = False
+    auth_cookie_samesite: str = "Lax"
+    auth_cookie_max_age_seconds: int = 7 * 24 * 60 * 60
+    auth_csrf_cookie_name: str = "peng_csrf"
+    auth_csrf_header_name: str = "X-CSRF-Token"
+    auth_rate_limit_login_attempts: int = 10
+    auth_rate_limit_window_seconds: int = 60
+    auth_system_user_username: str = "system"
+
     @field_validator("upload_dir", "sqlite_path", "lightrag_working_dir", mode="after")
     @classmethod
     def _resolve_relative_paths(cls, v: Path) -> Path:

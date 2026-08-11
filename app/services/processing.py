@@ -9,17 +9,19 @@ from app.db.sqlite_store import (
 )
 from app.services.extractor import extract, get_text_from_result
 from app.services.file_storage import get_document_file_path
+from app.services.artifacts import generate_artifacts_for_document
+from app.services.chunk_indexing import index_document_chunks
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 
-async def process_document(doc_id: str, job_id: str):
-    """Process a document: extract text, index into RAG, then update status."""
+async def process_document(doc_id: str, job_id: str, user_id: str):
+    """Process a document: extract text, index into RAG, generate artifacts, then update status."""
     try:
         update_job(job_id, "processing", progress=10)
 
-        doc = get_document(doc_id)
+        doc = get_document(doc_id, user_id)
         if not doc:
             update_job(job_id, "failed", progress=0, error_message="Document not found")
             return
@@ -36,8 +38,15 @@ async def process_document(doc_id: str, job_id: str):
         if settings.index_on_upload:
             update_job(job_id, "processing", progress=60)
             from app.services.rag import index_document
-            await index_document(doc_id, text)
-            logger.info("Indexed document %s (%d chars)", doc_id, len(text))
+            await index_document(doc_id, text, user_id=user_id)
+            await index_document_chunks(doc_id, text, user_id, category)
+            logger.info("Indexed document %s for user %s (%d chars)", doc_id, user_id, len(text))
+
+        update_job(job_id, "processing", progress=85)
+        try:
+            await generate_artifacts_for_document(doc_id, user_id, text)
+        except Exception as exc:
+            logger.warning("Artifact generation failed for doc %s (non-fatal): %s", doc_id, exc)
 
         update_job(job_id, "processing", progress=90)
         update_document_status(doc_id, "completed")
@@ -45,6 +54,7 @@ async def process_document(doc_id: str, job_id: str):
         log_activity(
             doc_id,
             "uploaded",
+            user_id,
             {"text_length": len(text), "category": category},
         )
 
@@ -55,12 +65,6 @@ async def process_document(doc_id: str, job_id: str):
         update_job(job_id, "failed", progress=0, error_message=error_message)
 
 
-def process_document_sync(doc_id: str, job_id: str):
-    """Run processing from FastAPI's threadpool.
-
-    ``BackgroundTasks`` executes an async callable on the event loop. Media
-    extraction and LightRAG indexing contain blocking CPU/file operations, so
-    running them there prevents ``GET /api/jobs/{job_id}`` from responding.
-    A synchronous wrapper makes Starlette use its worker threadpool instead.
-    """
-    asyncio.run(process_document(doc_id, job_id))
+def process_document_sync(doc_id: str, job_id: str, user_id: str):
+    """Run processing from FastAPI's threadpool."""
+    asyncio.run(process_document(doc_id, job_id, user_id))
