@@ -1,7 +1,7 @@
 """Evidence retrieval for chat: chunks with real metadata and deterministic scoring."""
 import logging
 import numpy as np
-from app.db.chunk_store import get_chunks_for_doc, get_chunks_for_docs
+from app.db.chunk_store import get_chunks_for_doc, get_chunks_for_docs, get_chunks_for_user
 from app.services.llm import embed
 
 logger = logging.getLogger(__name__)
@@ -26,6 +26,11 @@ async def retrieve_chunks(
 
     if doc_id:
         for chunk in get_chunks_for_doc(doc_id, user_id):
+            if chunk["chunk_id"] not in seen:
+                candidates.append(chunk)
+                seen.add(chunk["chunk_id"])
+    else:
+        for chunk in get_chunks_for_user(user_id, limit=2000):
             if chunk["chunk_id"] not in seen:
                 candidates.append(chunk)
                 seen.add(chunk["chunk_id"])
@@ -55,7 +60,7 @@ async def retrieve_chunks(
 
     scored = [(float(scores[i]), candidates[i]) for i in range(len(candidates))]
     scored.sort(key=lambda x: x[0], reverse=True)
-    return [chunk for _, chunk in scored[:top_k]]
+    return [{**chunk, "score": score} for score, chunk in scored[:top_k]]
 
 
 _NEGATION_WORDS = {"không", "not", "no", "never"}

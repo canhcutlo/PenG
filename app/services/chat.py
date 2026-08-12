@@ -1,8 +1,6 @@
 """Chat service: sessions, evidence retrieval, bounded generation, and persistence."""
 import logging
 import uuid
-from datetime import datetime, timezone
-
 from app.config import settings
 from app.db.chat_store import (
     insert_session,
@@ -13,16 +11,19 @@ from app.db.chat_store import (
 )
 from app.db.knowledge_store import get_edges_for_source_document
 from app.db.sqlite_store import get_document
-from app.models.schemas import Citation
-from app.services.llm import complete
-from app.services.prompts import build_chat_prompt, CHAT_PROMPT_VERSION
+from app.services.faithfulness import (
+    EvidenceItem,
+    evidence_item_to_citation,
+    generate_faithful_answer,
+    normalize_evidence,
+)
+from app.services.prompts import FAITHFUL_CHAT_PROMPT_VERSION
 from app.services.retrieval import retrieve_chunks, detect_contradictions
 
 logger = logging.getLogger(__name__)
 
 CHAT_MAX_HISTORY_MESSAGES = 5
 CHAT_MAX_CONTEXT_CHARS = 4000
-CHAT_MAX_NEW_TOKENS = 768
 
 _NO_EVIDENCE_ANSWER = "Không tìm thấy đủ bằng chứng trong các tài liệu đã tải lên."
 
@@ -102,27 +103,23 @@ async def post_chat_message(
 
     warnings = detect_contradictions(chunks, content)
 
-    if not chunks:
-        answer = _NO_EVIDENCE_ANSWER
-    else:
-        context = _build_context(chunks)
-        history = _build_history(session_id)
-        prompt = build_chat_prompt(question=content, context=context, history=history)
-        try:
-            answer = await complete(
-                prompt,
-                system_prompt=_chat_system_prompt(),
-                max_new_tokens=CHAT_MAX_NEW_TOKENS,
-            )
-        except Exception as exc:
-            logger.warning("LLM chat generation failed: %s", exc)
-            answer = _NO_EVIDENCE_ANSWER
-            warnings.append("Mô hình tạo câu trả lờI không thành công; chỉ hiển thị bằng chứng có sẵn.")
+    evidence = normalize_evidence(chunks)
+    faithful = await generate_faithful_answer(
+        content,
+        evidence,
+        history=_build_history(session_id),
+        max_retries=1,
+        is_chat=True,
+    )
 
-        if not answer.strip():
-            answer = _NO_EVIDENCE_ANSWER
+    id_to_item = {item.id: item for item in evidence}
+    cited_items: list[EvidenceItem] = [
+        id_to_item[eid] for eid in faithful.evidence_ids if eid in id_to_item
+    ]
+    citations = [evidence_item_to_citation(item) for item in cited_items]
+    warnings.extend(faithful.warnings)
 
-    citations = [_chunk_to_citation(c) for c in chunks[:5]]
+    answer = faithful.answer.strip() or _NO_EVIDENCE_ANSWER
 
     insert_message(
         session_id=session_id,
@@ -151,7 +148,7 @@ async def post_chat_message(
         related_nodes=related_nodes,
         warnings=warnings,
         model_id=settings.llm_model,
-        prompt_version=CHAT_PROMPT_VERSION,
+        prompt_version=FAITHFUL_CHAT_PROMPT_VERSION,
     )
 
     return {
@@ -163,32 +160,8 @@ async def post_chat_message(
         "related_nodes": related_nodes,
         "warnings": warnings,
         "model_id": settings.llm_model,
-        "prompt_version": CHAT_PROMPT_VERSION,
+        "prompt_version": FAITHFUL_CHAT_PROMPT_VERSION,
     }
-
-
-def _chat_system_prompt() -> str:
-    return (
-        "Bạn là trợ lý học tập. Chỉ trả lờI dựa trên bằng chứng được cung cấp. "
-        "Nếu thiếu bằng chứng, hãy nói rõ: 'Không tìm thấy đủ bằng chứng trong các tài liệu đã tải lên.' "
-        "Nếu có mâu thuẫn, trình bày cả hai nguồn và không tự chọn bên đúng. "
-        "Không thay đổi, bịa đặt, hoặc làm ảnh hưởng đến summary, quiz hay mindmap đã lưu. "
-        "Trích dẫn nguồn bằng [doc_id] và trang/cảnh/thờI gian nếu có."
-    )
-
-
-def _build_context(chunks: list[dict]) -> str:
-    parts: list[str] = []
-    for chunk in chunks:
-        markers: list[str] = [f"[doc_id={chunk['doc_id']}]"]
-        if chunk.get("page") is not None:
-            markers.append(f"[Page {chunk['page']}]")
-        if chunk.get("scene") is not None:
-            markers.append(f"[Scene {chunk['scene']}]")
-        if chunk.get("timestamp") is not None:
-            markers.append(f"[Time {chunk['timestamp']}s]")
-        parts.append(" ".join(markers) + "\n" + chunk["text"])
-    return "\n\n---\n\n".join(parts)[:CHAT_MAX_CONTEXT_CHARS]
 
 
 def _build_history(session_id: str) -> str:
@@ -206,15 +179,3 @@ def _build_history(session_id: str) -> str:
     return "\n".join(reversed(lines))
 
 
-def _chunk_to_citation(chunk: dict) -> dict:
-    return Citation(
-        doc_id=chunk["doc_id"],
-        page=chunk.get("page"),
-        scene=chunk.get("scene"),
-        timestamp=chunk.get("timestamp"),
-        chunk_text=chunk["text"][:500],
-    ).model_dump()
-
-
-def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()

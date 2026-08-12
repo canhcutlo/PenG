@@ -91,6 +91,80 @@ def build_quiz_prompt(text: str, num_questions: int = 5) -> str:
     return QUIZ_PROMPT.format(text=text[:4000], num=num_questions, json_schema=QUIZ_JSON_SCHEMA)
 
 
+FAITHFUL_ANSWER_PROMPT_VERSION = "faithful_answer_v1"
+FAITHFUL_CHAT_PROMPT_VERSION = "faithful_chat_v1"
+
+FAITHFUL_ANSWER_SYSTEM = (
+    "You are a careful evidence-based assistant. "
+    "Respond with ONLY valid JSON matching the provided schema. "
+    "Use ONLY the evidence supplied in the prompt. "
+    "Do not invent evidence, citations, or page numbers. "
+    "Set polarity to 'yes' only when the evidence clearly supports an affirmative answer. "
+    "Set polarity to 'no' only when the evidence clearly supports a negative answer. "
+    "Set polarity to 'unknown' when the evidence is insufficient or irrelevant. "
+    "If evidence contains a restrictive eligibility phrase (e.g., 'only students', 'chỉ sinh viên') "
+    "and the question asks about outsiders/non-members, answer 'no' or 'unknown', never 'yes'."
+)
+
+FAITHFUL_ANSWER_PROMPT = """Use ONLY the evidence below to answer the question.
+
+Evidence:
+{context}
+
+Question: {question}
+
+{history}
+
+Respond with JSON matching this schema:
+{{
+  "answer": "your concise answer in the same language as the question",
+  "polarity": "yes|no|unknown",
+  "evidence_ids": ["E1", ...],
+  "warnings": []
+}}
+
+Rules:
+- evidence_ids must reference ONLY the evidence IDs listed above.
+- Do not fabricate evidence IDs.
+- If the evidence does not fully answer the question, say so and set polarity to 'unknown'."""
+
+
+def build_faithful_answer_prompt(question: str, context: str, history: str = "") -> str:
+    return FAITHFUL_ANSWER_PROMPT.format(
+        question=question, context=context, history=history or ""
+    )
+
+
+FAITHFUL_CHAT_PROMPT = """You are in a chat about uploaded learning materials. Use ONLY the evidence below.
+
+Conversation history:
+{history}
+
+Evidence:
+{context}
+
+User question: {question}
+
+Respond with JSON matching this schema:
+{{
+  "answer": "your concise answer in the same language as the question",
+  "polarity": "yes|no|unknown",
+  "evidence_ids": ["E1", ...],
+  "warnings": []
+}}
+
+Rules:
+- evidence_ids must reference ONLY the evidence IDs listed above.
+- Do not fabricate evidence IDs.
+- If the evidence does not fully answer the question, say so and set polarity to 'unknown'."""
+
+
+def build_faithful_chat_prompt(question: str, context: str, history: str = "") -> str:
+    return FAITHFUL_CHAT_PROMPT.format(
+        question=question, context=context, history=history or ""
+    )
+
+
 CHAT_PROMPT_VERSION = "chat_v1"
 
 CHAT_SYSTEM = (

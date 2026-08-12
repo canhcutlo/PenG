@@ -106,6 +106,13 @@ class QueryResult(BaseModel):
     source: str
 
 
+class FaithfulAnswer(BaseModel):
+    answer: str
+    polarity: Literal["yes", "no", "unknown"] = "unknown"
+    evidence_ids: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
 class QueryResponse(BaseModel):
     answer: str
     citations: list[Citation] = []

@@ -9,6 +9,14 @@ from lightrag import LightRAG, QueryParam
 from lightrag.utils import EmbeddingFunc
 
 from app.config import settings
+from app.models.schemas import QueryResult
+from app.services.retrieval import retrieve_chunks
+from app.services.faithfulness import (
+    EvidenceItem,
+    evidence_item_to_citation,
+    generate_faithful_answer,
+    normalize_evidence,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -67,36 +75,58 @@ async def index_document(doc_id: str, text: str, user_id: str):
     logger.info("Indexed document %s for user %s", doc_id, user_id)
 
 
-async def query_documents(query: str, top_k: int = 5, mode: str = "naive", user_id: str | None = None) -> dict[str, Any]:
-    """Query LightRAG for relevant content.
+async def query_documents(
+    query: str,
+    top_k: int = 5,
+    mode: str = "naive",
+    user_id: str | None = None,
+    doc_id: str | None = None,
+) -> dict[str, Any]:
+    """Query indexed documents and return a faithfulness-guarded answer.
 
-    Returns {"answer": str, "citations": [...]}.
-    Uses naive mode by default (vector-only) so retrieval works without a graph.
+    Returns {"answer": str, "citations": [Citation, ...], "related_chunks": [...]}.
+    Retrieval is scoped to the user and optional document.
     """
     if not user_id:
         raise ValueError("user_id is required for RAG query")
 
-    rag = await get_rag(user_id)
-    param = QueryParam(
-        mode=mode,
-        top_k=top_k,
-        chunk_top_k=top_k,
-        enable_rerank=False,
-        include_references=True,
+    chunks = await retrieve_chunks(
+        query=query, user_id=user_id, doc_id=doc_id, top_k=top_k
     )
-    raw = await rag.aquery(query, param=param)
-    answer = str(raw or "")
+    evidence = normalize_evidence(chunks)
+    faithful = await generate_faithful_answer(query, evidence, history="")
 
-    if "no-context" in answer.lower() or not answer.strip():
-        chunks = await _retrieve_chunks_directly(query, top_k, user_id)
-        if chunks:
-            answer = "Không đủ dữ liệu để trả lờI đầy đủ. " \
-                     "Dưới đây là các đoạn liên quan nhất:\n\n" + \
-                     "\n\n---\n\n".join(chunks)
-        else:
-            answer = "Không tìm thấy nội dung liên quan."
+    id_to_item = {item.id: item for item in evidence}
+    cited_items: list[EvidenceItem] = [
+        id_to_item[eid] for eid in faithful.evidence_ids if eid in id_to_item
+    ]
 
-    return {"answer": answer, "citations": []}
+    citations = [evidence_item_to_citation(item) for item in cited_items]
+    related_chunks = [
+        QueryResult(
+            doc_id=item.doc_id,
+            chunk=item.text,
+            score=item.score,
+            source=_evidence_source(item),
+        )
+        for item in evidence
+    ]
+
+    return {
+        "answer": faithful.answer,
+        "citations": citations,
+        "related_chunks": related_chunks,
+    }
+
+
+def _evidence_source(item: EvidenceItem) -> str:
+    if item.page is not None:
+        return f"page:{item.page}"
+    if item.scene is not None:
+        return f"scene:{item.scene}"
+    if item.timestamp is not None:
+        return f"time:{item.timestamp}s"
+    return "document"
 
 
 async def _retrieve_chunks_directly(query: str, top_k: int, user_id: str) -> list[str]:
