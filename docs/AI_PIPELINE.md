@@ -35,7 +35,7 @@ not be treated as a provenance guarantee.
 
 ## Generation
 
-The default causal language model is `Qwen/Qwen2.5-3B-Instruct`. Transformers
+The default causal language model on this branch is `Qwen/Qwen2.5-1.5B-Instruct`. Transformers
 loads it only when generation is requested. On CUDA, the configured path uses
 BitsAndBytes 4-bit quantization to fit a Colab T4; CPU fallback is available
 but slower and may require more memory.

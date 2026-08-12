@@ -44,7 +44,7 @@ khoản riêng. Xem [Third-party notices](docs/THIRD_PARTY_NOTICES.md).
 | Video | scenedetect + MoviePy | Keyframe extraction + OCR |
 | RAG | LightRAG (`lightrag-hku`) | Naive mode (vector-only), không cần graph |
 | Vector DB | NanoVectorDB (file-based) | Mặc định trong LightRAG 1.5.5 |
-| LLM | Qwen2.5-3B-Instruct (mặc định) / Llama-3.2-3B | 4-bit quantize trên Colab T4 |
+| LLM | Qwen2.5-1.5B-Instruct (branch thử nghiệm) / Qwen2.5-3B-Instruct | 4-bit quantize trên Colab T4; CPU-friendly hơn |
 | Structured Output | JSON + Pydantic + bounded retry | Instructor chỉ là adapter tùy chọn |
 | Mindmap | Markmap (`markmap-lib`) | Render markdown → mindmap |
 | Quiz UI | Vanilla JavaScript | Không cần React build |

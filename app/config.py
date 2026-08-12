@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     sqlite_path: Path = PROJECT_ROOT / "peng_history.db"
     lightrag_working_dir: Path = PROJECT_ROOT / "lightrag_data"
 
-    llm_model: str = "Qwen/Qwen2.5-3B-Instruct"
+    llm_model: str = "Qwen/Qwen2.5-1.5B-Instruct"
     llm_device: str = "cuda"
     llm_quantize: bool = True
     use_instructor: bool = False

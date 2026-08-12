@@ -10,7 +10,7 @@ Use this checklist for the final presentation and for a clean Colab rehearsal.
 - Confirm `/api/health` returns HTTP 200 and `db: ok`.
 - Upload one small PDF with native text and wait for `completed`.
 - Keep a second small image available to demonstrate OCR fallback.
-- Confirm the Qwen2.5-3B model has already been downloaded or allow 3–5 minutes.
+- Confirm the Qwen2.5-1.5B model has already been downloaded or allow a few minutes.
 - Open the public URL in an incognito window and verify the frontend loads.
 
 ## Presentation flow
@@ -25,7 +25,7 @@ Use this checklist for the final presentation and for a clean Colab rehearsal.
 
 ## Fallback plan
 
-- If GPU memory is insufficient, switch to `Qwen/Qwen2.5-1.5B-Instruct`.
+- If answer quality is insufficient, switch to `Qwen/Qwen2.5-3B-Instruct`.
 - If the model is still warming up, demonstrate upload, job polling, and OCR first.
 - If ngrok fails, use `http://localhost:8000` inside the notebook runtime.
 - Keep a screenshot or short screen recording of a successful full run.

@@ -30,7 +30,7 @@ Browser
 | Extraction | `app/services/extractor.py`, `stt.py`, `ocr.py`, `video.py` | STT, OCR/native PDF text, and video scene/keyframe text |
 | Retrieval | LightRAG `lightrag-hku==1.5.5` | Index and query chunks in `naive` vector mode by default |
 | Vector storage | LightRAG NanoVectorDB | File-based persistent storage under the configured working directory; ChromaDB is not used |
-| Generation | Transformers + Qwen2.5-3B-Instruct | Lazy-loaded answer, quiz, and mindmap generation; 4-bit CUDA loading when enabled |
+| Generation | Transformers + Qwen2.5-1.5B-Instruct | Branch default; lazy-loaded answer, quiz, and mindmap generation; 4-bit CUDA loading when enabled |
 | Embeddings | `keepitreal/vietnamese-sbert` | Vietnamese-capable embeddings; configured dimension is 768 |
 | Structured output | Pydantic validation and bounded retry; optional Instructor adapter | Validates generated quiz and related structured results |
 | Persistence | SQLite in `peng_history.db` by default | Documents, processing jobs, activities, quizzes, and quiz results |
