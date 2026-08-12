@@ -109,3 +109,22 @@ async def test_extract_image(text_image):
     result = await extract(text_image, "image")
     assert "text" in result
     assert isinstance(result["text"], str)
+
+
+def test_stt_cleans_noise_markers_conservatively():
+    from app.services.stt import _clean_segment_text
+    raw = "[BLANK_AUDIO] Xin chào (nhạc) thế giới [MUSIC]"
+    cleaned = _clean_segment_text(raw)
+    assert "[BLANK_AUDIO]" not in cleaned
+    assert "(nhạc)" not in cleaned
+    assert "[MUSIC]" not in cleaned
+    assert "Xin chào" in cleaned
+    assert "thế giới" in cleaned
+
+
+def test_stt_cleans_excessive_repetition():
+    from app.services.stt import _clean_segment_text
+    raw = "xin chào xin chào xin chào xin chào thế giới"
+    cleaned = _clean_segment_text(raw)
+    assert cleaned.count("xin chào") == 1
+    assert "thế giới" in cleaned

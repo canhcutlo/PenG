@@ -25,9 +25,18 @@ _generation_lock = asyncio.Lock()
 _gpu_semaphore = asyncio.Semaphore(1)
 
 
-async def generate_artifacts_for_document(doc_id: str, user_id: str, text: str):
+async def generate_artifacts_for_document(
+    doc_id: str,
+    user_id: str,
+    text: str,
+    progress_callback: callable | None = None,
+):
     """Generate summary and mindmap artifacts for a document. Failures are logged but not raised."""
+    if progress_callback:
+        await progress_callback("generating_summary", "Đang tạo tóm tắt", 70)
     await _generate_artifact(doc_id, user_id, text, "summary", generate_summary)
+    if progress_callback:
+        await progress_callback("generating_mindmap", "Đang tạo mindmap", 82)
     await _generate_artifact(doc_id, user_id, text, "mindmap", generate_mindmap_markdown)
 
 

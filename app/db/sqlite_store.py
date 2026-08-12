@@ -43,6 +43,8 @@ def init_sqlite():
             status TEXT NOT NULL DEFAULT 'queued'
                 CHECK(status IN ('queued','processing','completed','failed')),
             progress INTEGER NOT NULL DEFAULT 0,
+            stage TEXT,
+            stage_label TEXT,
             error_message TEXT,
             user_id TEXT,
             created_at TEXT NOT NULL,
@@ -76,6 +78,14 @@ def init_sqlite():
         );
     """)
     conn.commit()
+
+    for col in ("stage", "stage_label"):
+        try:
+            conn.execute(f"ALTER TABLE processing_jobs ADD COLUMN {col} TEXT")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+
     conn.close()
 
     ensure_system_user()
@@ -160,9 +170,9 @@ def insert_job(job_id: str, doc_id: str, job_type: str, user_id: str) -> dict:
     conn = get_connection()
     now = _now()
     conn.execute(
-        """INSERT INTO processing_jobs (job_id, doc_id, job_type, status, user_id, created_at)
-           VALUES (?, ?, ?, 'queued', ?, ?)""",
-        (job_id, doc_id, job_type, user_id, now),
+        """INSERT INTO processing_jobs (job_id, doc_id, job_type, status, progress, stage, stage_label, user_id, created_at)
+           VALUES (?, ?, ?, 'queued', 0, ?, ?, ?, ?)""",
+        (job_id, doc_id, job_type, "queued", "Đang chờ xử lý", user_id, now),
     )
     conn.commit()
     row = conn.execute(
@@ -191,14 +201,24 @@ def get_job(job_id: str, user_id: str | None = None) -> dict | None:
     return dict(row) if row else None
 
 
-def update_job(job_id: str, status: str, progress: int = 0, error_message: str | None = None):
+def update_job(
+    job_id: str,
+    status: str,
+    progress: int = 0,
+    error_message: str | None = None,
+    stage: str | None = None,
+    stage_label: str | None = None,
+):
     conn = get_connection()
     now = _now()
     conn.execute(
         """UPDATE processing_jobs
-           SET status = ?, progress = ?, error_message = ?, updated_at = ?
+           SET status = ?, progress = ?, error_message = ?,
+               stage = COALESCE(?, stage),
+               stage_label = COALESCE(?, stage_label),
+               updated_at = ?
            WHERE job_id = ?""",
-        (status, progress, error_message, now, job_id),
+        (status, progress, error_message, stage, stage_label, now, job_id),
     )
     conn.commit()
     conn.close()

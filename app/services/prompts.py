@@ -91,8 +91,30 @@ def build_quiz_prompt(text: str, num_questions: int = 5) -> str:
     return QUIZ_PROMPT.format(text=text[:4000], num=num_questions, json_schema=QUIZ_JSON_SCHEMA)
 
 
-FAITHFUL_ANSWER_PROMPT_VERSION = "faithful_answer_v1"
-FAITHFUL_CHAT_PROMPT_VERSION = "faithful_chat_v1"
+FAITHFUL_ANSWER_PROMPT_VERSION = "faithful_answer_v2"
+FAITHFUL_CHAT_PROMPT_VERSION = "faithful_chat_v2"
+
+_VIETNAMESE_MARKS = set(
+    "àáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ"
+)
+
+
+def detect_question_language(question: str) -> str:
+    """Detect whether the user's question is Vietnamese or English.
+
+    Vietnamese diacritics/markers take precedence over English heuristics so
+    that a noisy English transcript does not force an English answer.
+    """
+    if any(ch in _VIETNAMESE_MARKS for ch in question):
+        return "vi"
+    return "en"
+
+
+LANGUAGE_LABELS = {
+    "vi": "Tiếng Việt",
+    "en": "English",
+}
+
 
 FAITHFUL_ANSWER_SYSTEM = (
     "You are a careful evidence-based assistant. "
@@ -117,21 +139,32 @@ Question: {question}
 
 Respond with JSON matching this schema:
 {{
-  "answer": "your concise answer in the same language as the question",
+  "answer": "your concise answer in {language} ({language_label})",
   "polarity": "yes|no|unknown",
   "evidence_ids": ["E1", ...],
   "warnings": []
 }}
 
 Rules:
+- The answer MUST be in {language} ({language_label}). Do not switch languages based on the evidence.
 - evidence_ids must reference ONLY the evidence IDs listed above.
 - Do not fabricate evidence IDs.
 - If the evidence does not fully answer the question, say so and set polarity to 'unknown'."""
 
 
-def build_faithful_answer_prompt(question: str, context: str, history: str = "") -> str:
+def build_faithful_answer_prompt(
+    question: str,
+    context: str,
+    history: str = "",
+    output_language: str = "vi",
+) -> str:
+    language = output_language if output_language in LANGUAGE_LABELS else "vi"
     return FAITHFUL_ANSWER_PROMPT.format(
-        question=question, context=context, history=history or ""
+        question=question,
+        context=context,
+        history=history or "",
+        language=language,
+        language_label=LANGUAGE_LABELS[language],
     )
 
 
@@ -147,21 +180,32 @@ User question: {question}
 
 Respond with JSON matching this schema:
 {{
-  "answer": "your concise answer in the same language as the question",
+  "answer": "your concise answer in {language} ({language_label})",
   "polarity": "yes|no|unknown",
   "evidence_ids": ["E1", ...],
   "warnings": []
 }}
 
 Rules:
+- The answer MUST be in {language} ({language_label}). The user's latest question language decides the output language, not the noisy evidence language.
 - evidence_ids must reference ONLY the evidence IDs listed above.
 - Do not fabricate evidence IDs.
 - If the evidence does not fully answer the question, say so and set polarity to 'unknown'."""
 
 
-def build_faithful_chat_prompt(question: str, context: str, history: str = "") -> str:
+def build_faithful_chat_prompt(
+    question: str,
+    context: str,
+    history: str = "",
+    output_language: str = "vi",
+) -> str:
+    language = output_language if output_language in LANGUAGE_LABELS else "vi"
     return FAITHFUL_CHAT_PROMPT.format(
-        question=question, context=context, history=history or ""
+        question=question,
+        context=context,
+        history=history or "",
+        language=language,
+        language_label=LANGUAGE_LABELS[language],
     )
 
 

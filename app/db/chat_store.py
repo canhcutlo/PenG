@@ -86,9 +86,11 @@ def list_sessions(user_id: str, limit: int = 20, offset: int = 0) -> list[dict]:
     conn = get_connection()
     rows = conn.execute(
         """
-        SELECT * FROM chat_sessions
-        WHERE user_id = ?
-        ORDER BY updated_at DESC, created_at DESC
+        SELECT s.*, d.original_name AS doc_title
+        FROM chat_sessions s
+        LEFT JOIN documents d ON s.document_id = d.doc_id
+        WHERE s.user_id = ?
+        ORDER BY s.updated_at DESC, s.created_at DESC
         LIMIT ? OFFSET ?
         """,
         (user_id, limit, offset),

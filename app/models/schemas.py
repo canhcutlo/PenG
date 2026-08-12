@@ -51,6 +51,8 @@ class Job(BaseModel):
     job_type: Literal["extract", "index"]
     status: Literal["queued", "processing", "completed", "failed"]
     progress: int = Field(default=0, ge=0, le=100)
+    stage: str | None = None
+    stage_label: str | None = None
     error_message: str | None = None
     created_at: datetime
     updated_at: datetime | None = None
@@ -67,6 +69,7 @@ class UploadResponse(BaseModel):
     doc_id: str
     job_id: str
     filename: str
+    original_name: str | None = None
     category: str
     status: str = "queued"
 
@@ -76,6 +79,8 @@ class JobStatusResponse(BaseModel):
     doc_id: str
     status: str
     progress: int
+    stage: str | None = None
+    stage_label: str | None = None
     error_message: str | None = None
 
 
@@ -199,6 +204,7 @@ class ChatSession(BaseModel):
     user_id: str
     doc_id: str
     title: str | None = None
+    doc_title: str | None = None
     created_at: datetime
     updated_at: datetime | None = None
 

@@ -13,11 +13,12 @@ from app.db.knowledge_store import get_edges_for_source_document
 from app.db.sqlite_store import get_document
 from app.services.faithfulness import (
     EvidenceItem,
+    _no_evidence_answer,
     evidence_item_to_citation,
     generate_faithful_answer,
     normalize_evidence,
 )
-from app.services.prompts import FAITHFUL_CHAT_PROMPT_VERSION
+from app.services.prompts import FAITHFUL_CHAT_PROMPT_VERSION, detect_question_language
 from app.services.retrieval import retrieve_chunks, detect_contradictions
 
 logger = logging.getLogger(__name__)
@@ -25,17 +26,16 @@ logger = logging.getLogger(__name__)
 CHAT_MAX_HISTORY_MESSAGES = 5
 CHAT_MAX_CONTEXT_CHARS = 4000
 
-_NO_EVIDENCE_ANSWER = "Không tìm thấy đủ bằng chứng trong các tài liệu đã tải lên."
-
 
 def create_chat_session(user_id: str, doc_id: str, title: str | None = None) -> dict:
     """Create a chat session scoped to a single document owned by the user."""
-    if not get_document(doc_id, user_id):
+    doc = get_document(doc_id, user_id)
+    if not doc:
         raise ValueError("Document not found")
 
     session_id = uuid.uuid4().hex[:12]
     if not title:
-        title = f"Chat {doc_id}"
+        title = doc.get("original_name") or doc.get("filename") or f"Chat {doc_id}"
     return insert_session(session_id, user_id, doc_id, title)
 
 
@@ -104,12 +104,14 @@ async def post_chat_message(
     warnings = detect_contradictions(chunks, content)
 
     evidence = normalize_evidence(chunks)
+    output_language = detect_question_language(content)
     faithful = await generate_faithful_answer(
         content,
         evidence,
         history=_build_history(session_id),
         max_retries=1,
         is_chat=True,
+        output_language=output_language,
     )
 
     id_to_item = {item.id: item for item in evidence}
@@ -119,7 +121,7 @@ async def post_chat_message(
     citations = [evidence_item_to_citation(item) for item in cited_items]
     warnings.extend(faithful.warnings)
 
-    answer = faithful.answer.strip() or _NO_EVIDENCE_ANSWER
+    answer = faithful.answer.strip() or _no_evidence_answer(output_language)
 
     insert_message(
         session_id=session_id,

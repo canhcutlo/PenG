@@ -59,6 +59,7 @@ async def upload_file(
             doc_id=existing["doc_id"],
             job_id=dup_job_id,
             filename=existing["filename"],
+            original_name=existing.get("original_name") or existing["filename"],
             category=existing["category"],
             status=existing.get("status", "completed"),
         )
@@ -73,6 +74,7 @@ async def upload_file(
         doc_id=doc["doc_id"],
         job_id=job["job_id"],
         filename=doc["filename"],
+        original_name=doc.get("original_name") or doc["filename"],
         category=doc["category"],
         status=doc["status"],
     )
@@ -90,5 +92,7 @@ async def get_job_status(job_id: str, user: dict = Depends(require_auth)):
         doc_id=job["doc_id"],
         status=job["status"],
         progress=job["progress"],
+        stage=job.get("stage"),
+        stage_label=job.get("stage_label"),
         error_message=job["error_message"],
     )

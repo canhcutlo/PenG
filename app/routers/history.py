@@ -15,11 +15,15 @@ def _require_csrf():
 @router.get("/history")
 async def get_learning_history(limit: int = 20, user: dict = Depends(require_auth)):
     """Get recent learning activities from SQLite."""
+    from app.db.sqlite_store import get_documents_for_user
+
     rows = get_activities(user["user_id"], limit)
+    docs = {d["doc_id"]: d for d in get_documents_for_user(user["user_id"], limit=10000)}
     return [
         {
             "id": r["id"],
             "doc_id": r["doc_id"],
+            "original_name": docs.get(r["doc_id"], {}).get("original_name") or r["doc_id"],
             "action": r["action"],
             "metadata": r["metadata_json"],
             "created_at": r["created_at"],

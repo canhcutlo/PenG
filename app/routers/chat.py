@@ -1,6 +1,7 @@
 """Chat endpoints: sessions and messages with evidence retrieval."""
 from fastapi import APIRouter, HTTPException, Depends, Request
 from app.models.schemas import ChatSessionCreate, ChatSession, ChatMessageCreate, ChatMessageResponse
+from app.db.sqlite_store import get_document
 from app.services.chat import (
     create_chat_session,
     list_chat_sessions,
@@ -10,6 +11,13 @@ from app.services.chat import (
 from app.services.auth import require_auth, verify_csrf
 
 router = APIRouter()
+
+
+def _doc_title(doc_id: str, user_id: str) -> str | None:
+    doc = get_document(doc_id, user_id)
+    if not doc:
+        return None
+    return doc.get("original_name") or doc.get("filename")
 
 
 def _require_csrf():
@@ -34,6 +42,7 @@ async def create_session(
         user_id=session["user_id"],
         doc_id=session["document_id"],
         title=session.get("title"),
+        doc_title=_doc_title(session["document_id"], session["user_id"]),
         created_at=session["created_at"],
         updated_at=session.get("updated_at"),
     )
@@ -53,6 +62,7 @@ async def list_sessions(
             user_id=r["user_id"],
             doc_id=r["document_id"],
             title=r.get("title"),
+            doc_title=r.get("doc_title"),
             created_at=r["created_at"],
             updated_at=r.get("updated_at"),
         )
@@ -76,6 +86,7 @@ async def get_session(
             user_id=session["user_id"],
             doc_id=session["document_id"],
             title=session.get("title"),
+            doc_title=_doc_title(session["document_id"], session["user_id"]),
             created_at=session["created_at"],
             updated_at=session.get("updated_at"),
         ),
