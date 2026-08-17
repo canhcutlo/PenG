@@ -30,6 +30,23 @@ class Settings(BaseSettings):
     llm_quantize: bool = True
     use_instructor: bool = False
 
+    # LLM runtime selection
+    # - "transformers" (default): load a Hugging Face model with Transformers/BitsAndBytes (CUDA-friendly).
+    # - "llama_cpp": load a local GGUF file via llama-cpp-python (CPU-friendly).
+    llm_runtime: str = "transformers"
+    llm_gguf_model_path: Path | None = None
+    llm_gguf_chat_format: str | None = None  # e.g. "chatml", "qwen", leave None for auto
+    llm_gguf_n_threads: int | None = None  # None lets llama.cpp use all logical cores
+    llm_gguf_n_ctx: int = 4096
+
+    @field_validator("llm_runtime")
+    @classmethod
+    def _validate_llm_runtime(cls, v: str) -> str:
+        allowed = {"transformers", "llama_cpp"}
+        if v not in allowed:
+            raise ValueError(f"LLM_RUNTIME must be one of {allowed}, got {v!r}")
+        return v
+
     embedding_model: str = "keepitreal/vietnamese-sbert"
     embedding_dim: int = 768
 
@@ -60,10 +77,18 @@ class Settings(BaseSettings):
     auth_rate_limit_window_seconds: int = 60
     auth_system_user_username: str = "system"
 
-    @field_validator("upload_dir", "sqlite_path", "lightrag_working_dir", mode="after")
+    @field_validator(
+        "upload_dir",
+        "sqlite_path",
+        "lightrag_working_dir",
+        "llm_gguf_model_path",
+        mode="after",
+    )
     @classmethod
-    def _resolve_relative_paths(cls, v: Path) -> Path:
+    def _resolve_relative_paths(cls, v: Path | None) -> Path | None:
         """Resolve relative paths against the project root; keep absolute paths as-is."""
+        if v is None:
+            return v
         if v.is_absolute():
             return v
         return (PROJECT_ROOT / v).resolve()

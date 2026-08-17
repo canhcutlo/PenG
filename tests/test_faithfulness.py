@@ -20,6 +20,7 @@ from app.services.faithfulness import (
     normalize_evidence,
     validate_evidence_ids,
 )
+from app.services.prompts import detect_question_language
 from app.services.rag import query_documents
 from tests.conftest import get_auth_user_id
 from tests.test_rag import FakeEmbedding
@@ -210,10 +211,17 @@ def test_guard_allows_supported_positive_answer():
 
 
 @pytest.mark.asyncio
-async def test_generate_faithful_answer_no_context():
-    result = await generate_faithful_answer("question", [], history="")
+async def test_generate_faithful_answer_no_context_vietnamese():
+    result = await generate_faithful_answer("câu hỏi", [], history="")
     assert result.polarity == "unknown"
     assert "không tìm thấy" in result.answer.lower()
+
+
+@pytest.mark.asyncio
+async def test_generate_faithful_answer_no_context_english():
+    result = await generate_faithful_answer("question", [], history="")
+    assert result.polarity == "unknown"
+    assert "not enough evidence" in result.answer.lower()
 
 
 @pytest.mark.asyncio
@@ -359,3 +367,53 @@ async def test_chat_does_not_modify_artifacts_under_guard(auth_client, monkeypat
 
     assert get_latest_artifact(doc_id, "summary", status="completed")["content"] == summary
     assert get_latest_artifact(doc_id, "mindmap", status="completed")["content"] == mindmap
+
+
+def test_detect_question_language_vietnamese():
+    assert detect_question_language("Thủ đô của Việt Nam là gì?") == "vi"
+    assert detect_question_language("Hà Nội") == "vi"
+
+
+def test_detect_question_language_english():
+    assert detect_question_language("What is the capital of Vietnam?") == "en"
+    assert detect_question_language("Hello world") == "en"
+
+
+@pytest.mark.asyncio
+async def test_chat_answers_in_vietnamese_over_english_evidence(auth_client, monkeypatch):
+    monkeypatch.setattr("app.services.retrieval.embed", _fake_embed)
+    monkeypatch.setattr(
+        structured,
+        "completion_func",
+        _make_fake_llm([json.dumps({
+            "answer": "Đúng, Hà Nội.",
+            "polarity": "yes",
+            "evidence_ids": ["E1"],
+            "warnings": [],
+        })]),
+    )
+    user_id = get_auth_user_id(auth_client)
+    doc_id = _make_doc_chunks(user_id, ["Hanoi is the capital of Vietnam."], pages=[1])
+    session = create_chat_session(user_id, doc_id)
+    result = await post_chat_message(user_id, session["session_id"], "Thủ đô Việt Nam?", "document_and_related")
+    assert "Hà Nội" in result["answer"]
+
+
+@pytest.mark.asyncio
+async def test_chat_answers_in_english_over_vietnamese_evidence(auth_client, monkeypatch):
+    monkeypatch.setattr("app.services.retrieval.embed", _fake_embed)
+    monkeypatch.setattr(
+        structured,
+        "completion_func",
+        _make_fake_llm([json.dumps({
+            "answer": "Yes, Hanoi.",
+            "polarity": "yes",
+            "evidence_ids": ["E1"],
+            "warnings": [],
+        })]),
+    )
+    user_id = get_auth_user_id(auth_client)
+    doc_id = _make_doc_chunks(user_id, ["Hà Nội là thủ đô của Việt Nam."], pages=[1])
+    session = create_chat_session(user_id, doc_id)
+    result = await post_chat_message(user_id, session["session_id"], "Capital of Vietnam?", "document_and_related")
+    assert "Hanoi" in result["answer"]

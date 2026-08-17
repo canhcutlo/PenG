@@ -5,6 +5,11 @@ publish versioned releases; entries are grouped by delivery milestone.
 
 ## [Unreleased]
 
+- Added optional CPU GGUF runtime via `llama-cpp-python` on branch
+  `experiment/gguf-llama-cpp`. `LLM_RUNTIME` selects between `transformers`
+  (default, CUDA-friendly) and `llama_cpp` (local GGUF). Added
+  `requirements-cpu.txt`, `docs/CPU_GGUF.md`, `scripts/benchmark_llm.py`, and
+  unit tests with a monkeypatched fake llama runtime.
 - Made runtime paths (uploads, SQLite, LightRAG working dir) resolve relative to
   the project root when launched outside the repo root, while preserving absolute
   `.env` overrides. `StaticFiles` now uses an absolute path.

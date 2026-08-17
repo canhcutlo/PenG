@@ -16,8 +16,10 @@ from dataclasses import dataclass
 from app.models.schemas import FaithfulAnswer
 from app.services.prompts import (
     FAITHFUL_ANSWER_SYSTEM,
+    LANGUAGE_LABELS,
     build_faithful_answer_prompt,
     build_faithful_chat_prompt,
+    detect_question_language,
 )
 from app.services.structured import GenerationError, generate_structured
 
@@ -79,7 +81,14 @@ _AFFIRMATIVE_MARKERS = [
     re.compile(r"\beligible\b", re.IGNORECASE),
 ]
 
-_NO_EVIDENCE_ANSWER = "Không tìm thấy đủ bằng chứng trong các tài liệu đã tải lên."
+_NO_EVIDENCE_ANSWERS = {
+    "vi": "Không tìm thấy đủ bằng chứng trong các tài liệu đã tải lên.",
+    "en": "Not enough evidence was found in the uploaded documents.",
+}
+
+
+def _no_evidence_answer(language: str) -> str:
+    return _NO_EVIDENCE_ANSWERS.get(language, _NO_EVIDENCE_ANSWERS["vi"])
 
 
 def normalize_evidence(chunks: list[dict]) -> list[EvidenceItem]:
@@ -138,9 +147,9 @@ def _answer_looks_affirmative(answer_text: str) -> bool:
     return _matches_any(answer_text, _AFFIRMATIVE_MARKERS)
 
 
-def _safe_eligibility_answer(question: str) -> str:
+def _safe_eligibility_answer(question: str, language: str = "vi") -> str:
     """Return a cautious answer when evidence restricts participation."""
-    if _matches_any(question, _OUTSIDER_EN_PATTERNS):
+    if language == "en" or _matches_any(question, _OUTSIDER_EN_PATTERNS):
         return (
             "The document only confirms the restricted group mentioned. "
             "It does not establish that outsiders or non-members can participate."
@@ -190,7 +199,10 @@ def validate_evidence_ids(
 
 
 def apply_eligibility_guard(
-    answer: FaithfulAnswer, evidence: list[EvidenceItem], question: str
+    answer: FaithfulAnswer,
+    evidence: list[EvidenceItem],
+    question: str,
+    language: str = "vi",
 ) -> tuple[FaithfulAnswer, list[str]]:
     """Override affirmative answers that contradict restrictive eligibility evidence."""
     restricted_ids = _detect_restrictive_evidence(evidence)
@@ -209,7 +221,7 @@ def apply_eligibility_guard(
         "affirmative answer is not faithful to the evidence."
     )
     safe_answer = FaithfulAnswer(
-        answer=_safe_eligibility_answer(question),
+        answer=_safe_eligibility_answer(question, language),
         polarity="no",
         evidence_ids=restricted_ids,
         warnings=list(answer.warnings) + [guard_warning],
@@ -218,30 +230,36 @@ def apply_eligibility_guard(
 
 
 def apply_guard_rules(
-    answer: FaithfulAnswer, evidence: list[EvidenceItem], question: str
+    answer: FaithfulAnswer,
+    evidence: list[EvidenceItem],
+    question: str,
+    language: str = "vi",
 ) -> tuple[FaithfulAnswer, list[str]]:
     """Run validation and deterministic guard rules, returning any warnings."""
     validated, validation_warnings = validate_evidence_ids(answer, evidence)
-    guarded, guard_warnings = apply_eligibility_guard(validated, evidence, question)
+    guarded, guard_warnings = apply_eligibility_guard(validated, evidence, question, language)
     all_warnings = validation_warnings + guard_warnings
     return guarded, all_warnings
 
 
 def _build_safe_fallback(
-    evidence: list[EvidenceItem], extra_warnings: list[str], question: str = ""
+    evidence: list[EvidenceItem],
+    extra_warnings: list[str],
+    question: str = "",
+    language: str = "vi",
 ) -> FaithfulAnswer:
     """Return a conservative fallback when structured generation fails."""
     restricted_ids = _detect_restrictive_evidence(evidence)
     if restricted_ids and _detect_outsider_question(question):
         return FaithfulAnswer(
-            answer=_safe_eligibility_answer(question),
+            answer=_safe_eligibility_answer(question, language),
             polarity="no",
             evidence_ids=restricted_ids,
             warnings=extra_warnings
             or ["Câu trả lờI không vượt qua kiểm tra faithfulness sau khi thử lạI."],
         )
     return FaithfulAnswer(
-        answer=_NO_EVIDENCE_ANSWER,
+        answer=_no_evidence_answer(language),
         polarity="unknown",
         evidence_ids=[item.id for item in evidence],
         warnings=extra_warnings
@@ -255,6 +273,7 @@ async def generate_faithful_answer(
     history: str = "",
     max_retries: int = 1,
     is_chat: bool = False,
+    output_language: str | None = None,
 ) -> FaithfulAnswer:
     """Generate a faithfulness-guarded answer for the given evidence.
 
@@ -263,9 +282,11 @@ async def generate_faithful_answer(
     is invalid or contradicts the evidence, one bounded correction retry is made
     before returning a safe fallback answer.
     """
+    language = output_language if output_language in LANGUAGE_LABELS else detect_question_language(question)
+
     if not evidence:
         return FaithfulAnswer(
-            answer=_NO_EVIDENCE_ANSWER,
+            answer=_no_evidence_answer(language),
             polarity="unknown",
             evidence_ids=[],
             warnings=[],
@@ -274,11 +295,17 @@ async def generate_faithful_answer(
     context = format_evidence_for_prompt(evidence)
     if is_chat:
         base_prompt = build_faithful_chat_prompt(
-            question=question, context=context, history=history
+            question=question,
+            context=context,
+            history=history,
+            output_language=language,
         )
     else:
         base_prompt = build_faithful_answer_prompt(
-            question=question, context=context, history=history
+            question=question,
+            context=context,
+            history=history,
+            output_language=language,
         )
 
     guard_warnings: list[str] = []
@@ -303,12 +330,12 @@ async def generate_faithful_answer(
         except GenerationError:
             break
 
-        guarded, guard_warnings = apply_guard_rules(raw, evidence, question)
+        guarded, guard_warnings = apply_guard_rules(raw, evidence, question, language)
         if not guard_warnings:
             return guarded
 
     # Fallback: deterministic eligibility guard still applies even without model output.
-    return _build_safe_fallback(evidence, guard_warnings, question)
+    return _build_safe_fallback(evidence, guard_warnings, question, language)
 
 
 def evidence_item_to_citation(item: EvidenceItem) -> dict:

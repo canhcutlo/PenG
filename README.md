@@ -44,7 +44,8 @@ khoản riêng. Xem [Third-party notices](docs/THIRD_PARTY_NOTICES.md).
 | Video | scenedetect + MoviePy | Keyframe extraction + OCR |
 | RAG | LightRAG (`lightrag-hku`) | Naive mode (vector-only), không cần graph |
 | Vector DB | NanoVectorDB (file-based) | Mặc định trong LightRAG 1.5.5 |
-| LLM | Qwen2.5-1.5B-Instruct (branch thử nghiệm) / Qwen2.5-3B-Instruct | 4-bit quantize trên Colab T4; CPU-friendly hơn |
+| LLM | Qwen2.5-1.5B-Instruct (mặc định) / Qwen2.5-3B-Instruct | 4-bit quantize trên Colab T4 |
+| LLM (optional CPU) | GGUF via `llama-cpp-python` | `experiment/gguf-llama-cpp`; xem `docs/CPU_GGUF.md` |
 | Structured Output | JSON + Pydantic + bounded retry | Instructor chỉ là adapter tùy chọn |
 | Mindmap | Markmap (`markmap-lib`) | Render markdown → mindmap |
 | Quiz UI | Vanilla JavaScript | Không cần React build |
@@ -77,6 +78,13 @@ root; biến môi trường trong `.env` có thể dùng path tuyệt đối đ�
 
 Model Qwen và embedding sẽ được tải ở lần chạy đầu tiên. Unit test không tải model;
 hãy chạy integration test riêng khi runtime đã có GPU, FFmpeg và OCR system packages.
+
+### Optional CPU/GGUF runtime
+
+Thương nhánh `experiment/gguf-llama-cpp` hỗ trợ chạy LLM bằng file GGUF cục bộ
+qua `llama-cpp-python`, phù hợp máy không có GPU. Xem hướng dẫn chi tiết trong
+[`docs/CPU_GGUF.md`](docs/CPU_GGUF.md). Runtime này là tùy chọn; mặc định vẫn
+là Transformers/BitsAndBytes cho CUDA.
 
 ## Dependencies hệ thống
 

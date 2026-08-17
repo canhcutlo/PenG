@@ -1,0 +1,56 @@
+# PenG — Optional CPU/GGUF runtime dependencies
+#
+# This file is OPTIONAL. The default Transformers/BitsAndBytes runtime in
+# requirements.txt and requirements-colab.txt remains unchanged and is the
+# recommended path for CUDA (Google Colab T4).
+#
+# Use this file when you want to run the LLM locally on CPU with a GGUF model
+# via llama-cpp-python. Installing llama-cpp-python can be platform-sensitive
+# (compilers, BLAS backends, AVX support). It is intentionally kept separate
+# so that a normal `pip install -r requirements.txt` never fails because of it.
+#
+# Installation (pick ONE backend):
+#
+#   # Plain CPU wheel (no BLAS acceleration)
+#   pip install llama-cpp-python --no-cache-dir
+#
+#   # CPU with OpenBLAS (Linux/Windows, faster on many machines)
+#   CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" pip install llama-cpp-python --no-cache-dir
+#
+#   # Windows pre-built wheels (no compiler needed, community builds)
+#   pip install https://github.com/abetlen/llama-cpp-python/releases/download/.../llama_cpp_python-...whl
+#
+# On Windows without a compiler, use a pre-built wheel or WSL2. Do not block
+# the default install because llama-cpp-python cannot build.
+
+# Core (already in requirements.txt; listed here for standalone CPU setups)
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+pydantic>=2.0
+pydantic-settings>=2.0
+aiofiles>=24.0
+
+# STT / OCR / Video / RAG / Auth / Testing
+# These are identical to requirements.txt but without CUDA-only packages.
+faster-whisper>=1.0
+easyocr>=1.7
+pytesseract>=0.3
+pymupdf>=1.24
+Pillow>=11.0
+moviepy>=2.0
+scenedetect>=0.6
+opencv-python-headless>=4.9
+lightrag-hku==1.5.5
+instructor>=1.0
+transformers>=4.40
+torch>=2.3
+sentence-transformers>=3.0
+argon2-cffi>=23.0
+pytest>=8.0
+pytest-asyncio>=0.25
+httpx>=0.27
+
+# Optional CPU GGUF runtime.
+# Install separately; do not commit or download model weights.
+llama-cpp-python>=0.2.90
