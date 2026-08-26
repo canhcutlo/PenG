@@ -510,12 +510,12 @@
                 <p class="subtitle">Nhập tài khoản để truy cập workspace</p>
                 <div id="authError" class="hidden" role="alert"></div>
                 <div class="mt-12">
-                    <label for="loginUser">Username</label>
-                    <input type="text" id="loginUser" autocomplete="username" placeholder="username" required>
+                    <label for="loginUser">Tên đăng nhập</label>
+                    <input type="text" id="loginUser" autocomplete="username" placeholder="tên đăng nhập" required>
                 </div>
                 <div class="mt-12">
-                    <label for="loginPass">Password</label>
-                    <input type="password" id="loginPass" autocomplete="current-password" placeholder="password" required>
+                    <label for="loginPass">Mật khẩu</label>
+                    <input type="password" id="loginPass" autocomplete="current-password" placeholder="mật khẩu" required>
                 </div>
                 <div class="btn-group">
                     <button class="btn" id="loginBtn" style="width:100%">Đăng nhập</button>
@@ -529,11 +529,11 @@
                 <p class="subtitle">Tạo tài khoản mới để bắt đầu học</p>
                 <div id="regError" class="hidden" role="alert"></div>
                 <div class="mt-12">
-                    <label for="regUser">Username</label>
+                    <label for="regUser">Tên đăng nhập</label>
                     <input type="text" id="regUser" autocomplete="username" placeholder="3-32 ký tự, chữ/số/gạch" required>
                 </div>
                 <div class="mt-12">
-                    <label for="regPass">Password</label>
+                    <label for="regPass">Mật khẩu</label>
                     <input type="password" id="regPass" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" required>
                 </div>
                 <div class="btn-group">
@@ -838,7 +838,7 @@
         const username = $("#loginUser").value.trim();
         const password = $("#loginPass").value;
         if (!username || !password) {
-            showAuthError("authError", "Vui lòng nhập username và password.");
+            showAuthError("authError", "Vui lòng nhập tên đăng nhập và mật khẩu.");
             return;
         }
         $("#loginBtn").disabled = true;
@@ -865,11 +865,11 @@
         const username = $("#regUser").value.trim();
         const password = $("#regPass").value;
         if (!username || !password) {
-            showAuthError("regError", "Vui lòng nhập username và password.");
+            showAuthError("regError", "Vui lòng nhập tên đăng nhập và mật khẩu.");
             return;
         }
         if (password.length < 8) {
-            showAuthError("regError", "Password phải có ít nhất 8 ký tự.");
+            showAuthError("regError", "Mật khẩu phải có ít nhất 8 ký tự.");
             return;
         }
         $("#registerBtn").disabled = true;
@@ -880,8 +880,8 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
             });
-            showAuthSuccess("regError", "Đăng ký thành công! Vui lòng đăng nhập.");
             switchToLogin();
+            showAuthSuccess("authError", "Đăng ký thành công! Vui lòng đăng nhập.");
         } catch (err) {
             showAuthError("regError", err.message);
         } finally {
@@ -1142,7 +1142,7 @@
             uploadResult.classList.remove("hidden");
             showAlert(uploadResult, "error", "Upload thất bại: " + err.message);
         } finally {
-            uploadBtn.disabled = false;
+            uploadBtn.disabled = !selectedFileObj;
             uploadBtn.textContent = "Upload";
         }
     });
@@ -1434,7 +1434,7 @@
             const rows = await apiFetch("/api/history");
             historyArea.innerHTML = "";
             if (!rows.length) {
-                showEmptyState(historyArea, "&#128203;", "Chưa có hoạt động nào. Hãy bắt đầu bằng cách upload tài liệu.");
+                showEmptyState(historyArea, "📋", "Chưa có hoạt động nào. Hãy bắt đầu bằng cách upload tài liệu.");
                 return;
             }
 
@@ -1503,7 +1503,7 @@
             const docs = await apiFetch("/api/documents?limit=50");
             documentsArea.innerHTML = "";
             if (!docs.length) {
-                showEmptyState(documentsArea, "&#128194;", "Chưa có tài liệu nào. Hãy upload tài liệu đầu tiên.");
+                showEmptyState(documentsArea, "📂", "Chưa có tài liệu nào. Hãy upload tài liệu đầu tiên.");
                 return;
             }
 
