@@ -568,6 +568,7 @@
         <button class="tab-btn" data-tab="chat" role="tab" aria-selected="false" aria-controls="tab-chat" id="tabBtn-chat" tabindex="-1">Chat</button>
         <button class="tab-btn" data-tab="quiz" role="tab" aria-selected="false" aria-controls="tab-quiz" id="tabBtn-quiz" tabindex="-1">Quiz</button>
         <button class="tab-btn" data-tab="mindmap" role="tab" aria-selected="false" aria-controls="tab-mindmap" id="tabBtn-mindmap" tabindex="-1">Mindmap</button>
+        <button class="tab-btn" data-tab="query" role="tab" aria-selected="false" aria-controls="tab-query" id="tabBtn-query" tabindex="-1">Hỏi đáp</button>
         <button class="tab-btn" data-tab="history" role="tab" aria-selected="false" aria-controls="tab-history" id="tabBtn-history" tabindex="-1">Lịch sử</button>
     </nav>
 </div>
@@ -646,8 +647,11 @@
             <h2>Chat với tài liệu</h2>
             <div class="form-row">
                 <div>
-                    <label for="chatDocId">Document ID</label>
-                    <input type="text" id="chatDocId" placeholder="Nhập doc_id hoặc chọn từ danh sách tài liệu...">
+                    <label for="chatDocId">Chọn tài liệu</label>
+                    <select id="chatDocId" aria-describedby="chatDocStatus">
+                        <option value="">Chọn tài liệu</option>
+                    </select>
+                    <span id="chatDocStatus" class="text-xs text-dim">Chỉ tài liệu đã hoàn tất mới dùng được.</span>
                 </div>
                 <div style="flex:0 0 auto;display:flex;align-items:flex-end;">
                     <button class="btn" id="createSessionBtn">Tạo phiên chat</button>
@@ -676,8 +680,11 @@
             <h2>Tạo Quiz từ tài liệu</h2>
             <div class="form-row">
                 <div>
-                    <label for="quizDocId">Document ID</label>
-                    <input type="text" id="quizDocId" placeholder="Nhập doc_id hoặc chọn từ danh sách tài liệu...">
+                    <label for="quizDocId">Chọn tài liệu</label>
+                    <select id="quizDocId" aria-describedby="quizDocStatus">
+                        <option value="">Chọn tài liệu</option>
+                    </select>
+                    <span id="quizDocStatus" class="text-xs text-dim">Chỉ tài liệu đã hoàn tất mới dùng được.</span>
                 </div>
                 <div>
                     <label for="quizNum">Số câu hỏi</label>
@@ -697,8 +704,11 @@
             <h2>Mindmap tài liệu</h2>
             <div class="form-row">
                 <div>
-                    <label for="mindmapDocId">Document ID</label>
-                    <input type="text" id="mindmapDocId" placeholder="Nhập doc_id hoặc chọn từ danh sách tài liệu...">
+                    <label for="mindmapDocId">Chọn tài liệu</label>
+                    <select id="mindmapDocId" aria-describedby="mindmapDocStatus">
+                        <option value="">Chọn tài liệu</option>
+                    </select>
+                    <span id="mindmapDocStatus" class="text-xs text-dim">Chỉ tài liệu đã hoàn tất mới dùng được.</span>
                 </div>
             </div>
             <div class="btn-group">
@@ -706,6 +716,29 @@
             </div>
 
             <div id="mindmapArea" class="hidden mt-16" aria-live="polite"></div>
+        </div>
+    </section>
+
+    <section id="tab-query" class="tab-panel" role="tabpanel" aria-labelledby="tabBtn-query">
+        <div class="card">
+            <h2>Hỏi đáp với tài liệu</h2>
+            <div class="form-row">
+                <div>
+                    <label for="queryDocId">Chọn tài liệu</label>
+                    <select id="queryDocId" aria-describedby="queryDocStatus">
+                        <option value="">Chọn tài liệu</option>
+                    </select>
+                    <span id="queryDocStatus" class="text-xs text-dim">Chỉ tài liệu đã hoàn tất mới dùng được.</span>
+                </div>
+                <div>
+                    <label for="queryInput">Câu hỏi</label>
+                    <textarea id="queryInput" placeholder="Đặt câu hỏi về nội dung tài liệu..." rows="2"></textarea>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="queryBtn">Hỏi đáp</button>
+            </div>
+            <div id="queryArea" class="hidden mt-16" aria-live="polite"></div>
         </div>
     </section>
 
@@ -734,6 +767,7 @@
                 if (k === "className") node.className = v;
                 else if (k === "innerHTML") node.innerHTML = v;
                 else if (k.startsWith("on")) node.addEventListener(k.slice(2).toLowerCase(), v);
+                else if (k === "disabled") node.disabled = Boolean(v);
                 else node.setAttribute(k, v);
             });
         }
@@ -1045,10 +1079,79 @@
 
     function autoFillDocId(docId) {
         lastDocId = docId;
-        $("#quizDocId").value = docId;
-        $("#mindmapDocId").value = docId;
-        $("#chatDocId").value = docId;
+        documentSelectIds.forEach((id) => {
+            const select = $("#" + id);
+            if ([...select.options].some((option) => option.value === docId)) select.value = docId;
+        });
     }
+
+    const documentSelectIds = ["queryDocId", "chatDocId", "quizDocId", "mindmapDocId"];
+
+    function syncDocumentSelection(sourceId) {
+        const value = $("#" + sourceId).value;
+        documentSelectIds.forEach((id) => {
+            if (id !== sourceId) $("#" + id).value = value;
+        });
+        lastDocId = value || null;
+    }
+
+    function populateDocumentSelects(docs) {
+        const completedDocs = docs.filter((doc) => doc.status === "completed");
+        documentSelectIds.forEach((id) => {
+            const select = $("#" + id);
+            const currentValue = select.value;
+            select.innerHTML = "";
+            select.appendChild(el("option", { value: "" }, "Chọn tài liệu"));
+            completedDocs.forEach((doc) => {
+                select.appendChild(el("option", { value: doc.doc_id }, doc.original_name || doc.filename));
+            });
+            select.value = completedDocs.some((doc) => doc.doc_id === currentValue) ? currentValue : "";
+        });
+        const selectedValue = documentSelectIds.map((id) => $("#" + id).value).find(Boolean) || "";
+        documentSelectIds.forEach((id) => { $("#" + id).value = selectedValue; });
+        lastDocId = selectedValue || null;
+    }
+
+    documentSelectIds.forEach((id) => {
+        $("#" + id).addEventListener("change", () => syncDocumentSelection(id));
+    });
+
+    const queryBtn = $("#queryBtn");
+    const queryInput = $("#queryInput");
+    const queryArea = $("#queryArea");
+
+    queryBtn.addEventListener("click", async () => {
+        const question = queryInput.value.trim();
+        const docId = $("#queryDocId").value.trim();
+        if (!docId) { showAlert(queryArea, "error", "Vui lòng chọn tài liệu."); return; }
+        if (!question) { showAlert(queryArea, "error", "Vui lòng nhập câu hỏi."); return; }
+
+        queryBtn.disabled = true;
+        queryBtn.innerHTML = '<span class="spinner"></span> Đang xử lý...';
+        queryArea.classList.remove("hidden");
+        queryArea.innerHTML = '<div class="loading"><span class="spinner"></span> Đang tìm câu trả lời...</div>';
+        try {
+            const params = new URLSearchParams({ q: question, doc_id: docId });
+            const result = await apiFetch("/api/query?" + params.toString());
+            queryArea.innerHTML = "";
+            queryArea.appendChild(el("div", { className: "result", style: "white-space:pre-wrap;" }, result.answer || "Không tìm thấy câu trả lời phù hợp."));
+            if (result.citations && result.citations.length) {
+                queryArea.appendChild(el("h3", {}, "Trích dẫn"));
+                result.citations.forEach((citation) => {
+                    queryArea.appendChild(el("div", { className: "citation" },
+                        el("div", { className: "meta" }, citation.doc_id || docId),
+                        el("div", {}, citation.chunk_text || "")
+                    ));
+                });
+            }
+        } catch (err) {
+            queryArea.innerHTML = "";
+            showAlert(queryArea, "error", "Lỗi hỏi đáp: " + err.message);
+        } finally {
+            queryBtn.disabled = false;
+            queryBtn.textContent = "Hỏi đáp";
+        }
+    });
 
     let pollInterval = null;
 
@@ -1113,18 +1216,24 @@
             quickActions.appendChild(
                 el("button", {
                     className: "btn ghost",
+                    disabled: !isCompleted,
+                    title: isCompleted ? "Mở Chat" : "Tài liệu chưa hoàn tất",
                     onclick: () => { activateTab(2); }
                 }, "Chat")
             );
             quickActions.appendChild(
                 el("button", {
                     className: "btn ghost",
+                    disabled: !isCompleted,
+                    title: isCompleted ? "Tạo Quiz" : "Tài liệu chưa hoàn tất",
                     onclick: () => { activateTab(3); }
                 }, "Tạo Quiz")
             );
             quickActions.appendChild(
                 el("button", {
                     className: "btn ghost",
+                    disabled: !isCompleted,
+                    title: isCompleted ? "Tạo Mindmap" : "Tài liệu chưa hoàn tất",
                     onclick: () => { activateTab(4); }
                 }, "Tạo Mindmap")
             );
@@ -1197,7 +1306,7 @@
 
     generateQuizBtn.addEventListener("click", async () => {
         const docId = $("#quizDocId").value.trim();
-        if (!docId) { showAlert(quizArea, "error", "Vui lòng nhập Document ID."); return; }
+        if (!docId) { showAlert(quizArea, "error", "Vui lòng chọn tài liệu."); return; }
 
         const numQ = $("#quizNum").value || 5;
         generateQuizBtn.disabled = true;
@@ -1322,7 +1431,7 @@
 
     mindmapBtn.addEventListener("click", async () => {
         const docId = $("#mindmapDocId").value.trim();
-        if (!docId) { showAlert(mindmapArea, "error", "Vui lòng nhập Document ID."); return; }
+        if (!docId) { showAlert(mindmapArea, "error", "Vui lòng chọn tài liệu."); return; }
 
         mindmapBtn.disabled = true;
         mindmapBtn.innerHTML = '<span class="spinner"></span> Đang tạo mindmap...';
@@ -1501,6 +1610,7 @@
         documentsArea.innerHTML = '<div class="loading"><span class="spinner"></span> Đang tải tài liệu...</div>';
         try {
             const docs = await apiFetch("/api/documents?limit=50");
+            populateDocumentSelects(docs);
             documentsArea.innerHTML = "";
             if (!docs.length) {
                 showEmptyState(documentsArea, "📂", "Chưa có tài liệu nào. Hãy upload tài liệu đầu tiên.");
@@ -1533,10 +1643,13 @@
         card.appendChild(header);
 
         const actions = el("div", { className: "btn-group mt-8" });
+        const actionDisabled = doc.status !== "completed";
         actions.appendChild(
             el("button", {
                 className: "btn ghost",
                 style: "font-size:.78rem;padding:6px 12px;",
+            disabled: actionDisabled,
+            title: actionDisabled ? "Tài liệu chưa hoàn tất" : "Mở Chat",
                 onclick: () => { autoFillDocId(doc.doc_id); activateTab(2); }
             }, "Chat")
         );
@@ -1544,6 +1657,8 @@
             el("button", {
                 className: "btn ghost",
                 style: "font-size:.78rem;padding:6px 12px;",
+                disabled: actionDisabled,
+                title: actionDisabled ? "Tài liệu chưa hoàn tất" : "Tạo Quiz",
                 onclick: () => { autoFillDocId(doc.doc_id); activateTab(3); }
             }, "Quiz")
         );
@@ -1551,8 +1666,19 @@
             el("button", {
                 className: "btn ghost",
                 style: "font-size:.78rem;padding:6px 12px;",
+                disabled: actionDisabled,
+                title: actionDisabled ? "Tài liệu chưa hoàn tất" : "Tạo Mindmap",
                 onclick: () => { autoFillDocId(doc.doc_id); activateTab(4); }
             }, "Mindmap")
+        );
+        actions.appendChild(
+            el("button", {
+                className: "btn ghost",
+                style: "font-size:.78rem;padding:6px 12px;",
+                disabled: actionDisabled,
+                title: actionDisabled ? "Tài liệu chưa hoàn tất" : "Hỏi đáp",
+                onclick: () => { autoFillDocId(doc.doc_id); activateTab(5); }
+            }, "Hỏi đáp")
         );
         actions.appendChild(
             el("button", {
@@ -1739,7 +1865,7 @@
 
     createSessionBtn.addEventListener("click", async () => {
         const docId = $("#chatDocId").value.trim();
-        if (!docId) { showAlert(chatSessionList, "error", "Vui lòng nhập Document ID."); return; }
+        if (!docId) { showAlert(chatSessionList, "error", "Vui lòng chọn tài liệu."); return; }
         currentChatDocId = docId;
         createSessionBtn.disabled = true;
         createSessionBtn.innerHTML = '<span class="spinner"></span> Đang tạo...';
@@ -1930,7 +2056,7 @@
     async function openChatSession(sessionId, docId) {
         currentChatSessionId = sessionId;
         currentChatDocId = docId;
-        $("#chatDocId").value = docId;
+        autoFillDocId(docId);
         chatArea.classList.remove("hidden");
         chatHeader.innerHTML = "";
         chatHeader.appendChild(
