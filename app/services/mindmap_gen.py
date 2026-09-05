@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Mindmap generation from document text using LLM, with sanitization and validation."""
 import re
 from app.services.llm import complete

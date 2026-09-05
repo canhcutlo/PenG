@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Tests for the LLM service: runtime selection, lazy load, fallback, and GGUF path."""
 import builtins
 from pathlib import Path

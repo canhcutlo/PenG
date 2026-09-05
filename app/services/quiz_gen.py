@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Quiz generation with structured output validation."""
 import uuid
 from pydantic import BaseModel, Field, field_validator

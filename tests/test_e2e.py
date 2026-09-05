@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Phase 5/8/9 integration tests: auth, upload → query → quiz → submit → history → artifacts.
 
 These tests use the app via TestClient with fake LLM injection and

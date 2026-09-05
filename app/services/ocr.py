@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """OCR for images and PDFs via pytesseract/easyocr, with optional Surya."""
 import os
 import io

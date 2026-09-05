@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Authentication endpoints: register, login, logout, me."""
 from fastapi import APIRouter, Request, Response, Depends
 from app.models.schemas import UserRegister, UserLogin, AuthResponse, UserMe

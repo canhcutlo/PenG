@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Tests for video audio extraction and STT merging."""
 import pytest
 from pathlib import Path

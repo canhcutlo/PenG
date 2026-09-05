@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 from fastapi import APIRouter, HTTPException, Depends, Request
 from app.models.schemas import Quiz, QuizSubmission, QuizResult
 from app.db.sqlite_store import get_quiz, insert_quiz_result, insert_quiz, get_document, log_activity

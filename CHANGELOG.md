@@ -1,50 +1,37 @@
 # Changelog
 
-All notable project changes are recorded here. The project does not currently
-publish versioned releases; entries are grouped by delivery milestone.
+All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-- Added optional CPU GGUF runtime via `llama-cpp-python` on branch
-  `experiment/gguf-llama-cpp`. `LLM_RUNTIME` selects between `transformers`
-  (default, CUDA-friendly) and `llama_cpp` (local GGUF). Added
-  `requirements-cpu.txt`, `docs/CPU_GGUF.md`, `scripts/benchmark_llm.py`, and
-  unit tests with a monkeypatched fake llama runtime.
-- Made runtime paths (uploads, SQLite, LightRAG working dir) resolve relative to
-  the project root when launched outside the repo root, while preserving absolute
-  `.env` overrides. `StaticFiles` now uses an absolute path.
-- Removed `surya-ocr` from `requirements.txt` to avoid the Pillow>=11 conflict on
-  local Python 3.14+; kept it in `requirements-colab.txt` for Python 3.12.
-- Documented ffmpeg and Tesseract `vie+eng` system dependencies.
-- Corrected README: removed stale ChromaDB/chroma_store references, fixed API
-  routes, pointed Colab install to `requirements-colab.txt`, and clarified the
-  default OCR engine is tesseract.
-- Fixed `embed()` return-type annotation to match the NumPy array it returns.
-- Removed the unused `allowed_mime_types` setting.
-- Added `tests/test_config.py` covering project-root path resolution.
-- Added open-source project governance documentation: contribution guidance,
-  security reporting, architecture, and AI pipeline notes.
-- Added GitHub issue templates for reproducible bugs and scoped feature
-  requests.
-- Documented the current Colab-first runtime and its model/dependency limits.
+## [1.0.0] - 2026-09-06
 
-## 2026-08-02
+### Added
+- **Open-Source Compliance (SPDX)**: Added standard `SPDX-License-Identifier: MIT` headers to 100% of project source files (`.py` and `static/index.html`).
+- **PEP 517 / PEP 621 Standard Packaging**: Configured modern `pyproject.toml` metadata, `setuptools` build-system, entrypoints, and package discovery.
+- **CLI Entrypoint (`peng-server`)**: Added `run_server()` in `app/main.py` allowing server launch from any directory via `peng-server` CLI with configurable `--host`, `--port`, and `--reload` options.
+- **GGUF CPU Runtime via `llama-cpp-python`**: Support for local GGUF models on CPU without requiring dedicated GPU hardware, benchmark scripts (`scripts/benchmark_llm.py`), and documentation in `docs/CPU_GGUF.md`.
+- **Evidence Faithfulness Guard**: Added evidence normalization and verification guard for RAG query and chat to prevent hallucinated answers and eligibility polarity flips.
+- **Per-User Knowledge Graph & Document Chatbot**: Added user-isolated SQLite storage, knowledge graph nodes/edges, and document conversational chat.
+- **Release Packaging Tool**: Added `scripts/package_release.py` to bundle clean open-format source distribution archives (`.tar.gz`).
+- **SPDX Compliance Verifier**: Added `scripts/verify_spdx_headers.py` for automated license header auditing.
 
-- Completed the static study workspace with upload, query, quiz, mindmap, and
-  history tabs.
-- Added mindmap Markdown and SVG downloads.
-- Improved background job polling while extraction and indexing run.
-- Switched the default language model to Qwen2.5-3B-Instruct and configured
-  4-bit loading for a Colab T4 when CUDA is available.
-- Removed the unused ChromaDB integration and retained LightRAG's persistent
-  NanoVectorDB storage.
+### Changed
+- Added `models/` and `*.gguf` to `.gitignore` to prevent bundling large weight files.
+- Improved processing progress, title generation, and multilingual chat response consistency.
+- Standardized runtime paths to resolve reliably from repository root or absolute environment paths.
 
-## 2026-08-01
+### Fixed
+- Fixed type annotation in `app/services/artifacts.py` using `collections.abc.Callable`.
+- Fixed `embed()` return-type annotation to match NumPy array required by NanoVectorDB / LightRAG.
 
-- Implemented the FastAPI upload, processing-job, query, quiz, mindmap, and
-  learning-history flows.
-- Added audio transcription, image/PDF OCR, video scene/keyframe extraction,
-  chunking, embeddings, and LightRAG retrieval.
-- Added SQLite persistence and structured quiz/mindmap generation with
-  validation and bounded retries.
-- Added unit and model-marked integration tests.
+## [0.0.1-pre-release] - 2026-08-11
+
+### Added
+- Initial pre-release version of PenG (corresponding to GitHub tag `V0.0.1_Pre-release`).
+- Full multimodal study workspace with audio transcription (faster-whisper), OCR (pytesseract/EasyOCR), video processing (scenedetect + MoviePy), and PDF text extraction.
+- RAG integration with LightRAG and persistent NanoVectorDB storage.
+- Automated quiz generation, evaluation scoring, and markdown mindmap visualization.
+- SQLite history persistence and session-based authentication.
+- Initial suite of unit tests and model integration tests.

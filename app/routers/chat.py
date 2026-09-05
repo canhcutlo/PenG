@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Chat endpoints: sessions and messages with evidence retrieval."""
 from fastapi import APIRouter, HTTPException, Depends, Request
 from app.models.schemas import ChatSessionCreate, ChatSession, ChatMessageCreate, ChatMessageResponse

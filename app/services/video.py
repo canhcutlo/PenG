@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Video analysis: scene detection + keyframe OCR + audio STT."""
 import os
 import shutil

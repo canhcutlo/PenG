@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Tests for Phase 10: chat, knowledge nodes, edges, and evidence retrieval."""
 import uuid
 import pytest

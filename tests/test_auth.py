@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Auth tests: register, login, logout, me, CSRF, ownership isolation."""
 import pytest
 from fastapi.testclient import TestClient

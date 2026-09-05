@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Evidence retrieval for chat: chunks with real metadata and deterministic scoring."""
 import logging
 import numpy as np

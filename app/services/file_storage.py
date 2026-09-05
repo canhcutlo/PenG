@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """File storage: validation, checksum, save, cleanup."""
 import hashlib
 import shutil

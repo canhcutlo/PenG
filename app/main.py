@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -70,3 +73,37 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+
+def run_server():
+    """Entrypoint for the `peng-server` CLI command."""
+    import argparse
+    import os
+    import uvicorn
+
+    parser = argparse.ArgumentParser(description="Run the PenG server.")
+    parser.add_argument(
+        "--host",
+        default=os.getenv("PENG_HOST", "127.0.0.1"),
+        help="Bind socket to this host (default: 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=int(os.getenv("PENG_PORT", "8000")),
+        help="Bind socket to this port (default: 8000)",
+    )
+    parser.add_argument(
+        "--reload",
+        action="store_true",
+        default=os.getenv("PENG_RELOAD", "false").lower() in ("true", "1", "yes"),
+        help="Enable auto-reload",
+    )
+    args, _ = parser.parse_known_args()
+
+    uvicorn.run("app.main:app", host=args.host, port=args.port, reload=args.reload)
+
+
+if __name__ == "__main__":
+    run_server()
+

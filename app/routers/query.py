@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import QueryResponse, QueryResult
 from app.services.rag import query_documents

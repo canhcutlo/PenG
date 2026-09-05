@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Prompt templates for answer, summary, mindmap, and quiz generation.
 
 Each prompt includes: input format, output requirements, and constraints.

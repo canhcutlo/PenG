@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Unit tests for Phase 3: chunking, indexing, and retrieval.
 
 These tests avoid loading real AI models (embedding/LLM) by using

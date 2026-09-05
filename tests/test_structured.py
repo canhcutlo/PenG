@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Phase 4 tests: structured generation with fake LLM (no real model load)."""
 import json
 import pytest

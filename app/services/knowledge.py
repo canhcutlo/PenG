@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Knowledge graph construction from artifacts: nodes, reliability, and related edges."""
 import json
 import logging

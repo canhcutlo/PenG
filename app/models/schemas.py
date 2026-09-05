@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Pydantic schemas for all API request/response models."""
 from pydantic import BaseModel, Field
 from datetime import datetime

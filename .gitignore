@@ -31,6 +31,10 @@ lightrag_data/
 uploads/
 temp/
 
+# Model weights
+models/
+*.gguf
+
 # IDE
 .vscode/
 .idea/

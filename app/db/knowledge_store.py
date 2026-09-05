@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """SQLite store for knowledge nodes and edges."""
 import json
 import sqlite3

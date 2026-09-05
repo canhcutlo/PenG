@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Chat service: sessions, evidence retrieval, bounded generation, and persistence."""
 import logging
 import uuid

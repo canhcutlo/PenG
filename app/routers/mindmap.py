@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from app.db.sqlite_store import get_document, log_activity

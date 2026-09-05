@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Tests for configuration and project-root path resolution."""
 import os
 from pathlib import Path

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """LightRAG integration for indexing and retrieval (pinned: lightrag-hku 1.5.5).
 
 Per-user working directories isolate RAG data between accounts.

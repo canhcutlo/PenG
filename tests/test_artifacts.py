@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Tests for document artifacts: summary, mindmap, regeneration, versioning."""
 import pytest
 import io

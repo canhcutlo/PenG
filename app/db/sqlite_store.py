@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """SQLite store for documents, jobs, activities, quizzes, and quiz results."""
 import sqlite3
 import json

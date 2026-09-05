@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """SQLite store for indexed document chunks used by chat retrieval."""
 import json
 import sqlite3

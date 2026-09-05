@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Regression tests for the faithfulness guard.
 
 These tests use fake LLM/embedding functions and avoid downloading models.

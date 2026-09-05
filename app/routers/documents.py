@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Document listing and artifact endpoints."""
 from fastapi import APIRouter, HTTPException, Depends, Request
 from app.models.schemas import Artifact

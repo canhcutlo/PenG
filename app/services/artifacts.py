@@ -1,5 +1,9 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Document artifact generation: summary and mindmap."""
 import asyncio
+from collections.abc import Callable
 import hashlib
 import uuid
 import logging
@@ -29,7 +33,7 @@ async def generate_artifacts_for_document(
     doc_id: str,
     user_id: str,
     text: str,
-    progress_callback: callable | None = None,
+    progress_callback: Callable | None = None,
 ):
     """Generate summary and mindmap artifacts for a document. Failures are logged but not raised."""
     if progress_callback:

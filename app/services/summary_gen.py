@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Summary generation with versioned prompt and validation."""
 import re
 from pydantic import BaseModel, Field, ValidationError, field_validator

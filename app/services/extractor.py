@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Orchestrates extraction pipeline: detect content type, route to appropriate service."""
 from app.services.stt import transcribe_audio
 from app.services.ocr import ocr_image, extract_native_pdf_text

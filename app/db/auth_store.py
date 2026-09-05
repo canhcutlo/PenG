@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """SQLite store for users, sessions, and auth-related migrations."""
 import hashlib
 import secrets

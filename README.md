@@ -3,11 +3,20 @@
 Ứng dụng học tập đa năng: upload tài liệu (audio, ảnh, PDF, video), tự động trích xuất nội dung, tạo mindmap và câu hỏi ôn tập bằng AI.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-48%20passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-126%20passed-brightgreen.svg)](tests/)
+[![Issues](https://img.shields.io/github/issues/canhcutlo/PenG)](https://github.com/canhcutlo/PenG/issues)
+[![Release](https://img.shields.io/github/v/release/canhcutlo/PenG)](https://github.com/canhcutlo/PenG/releases)
 
-PenG là phần mềm nguồn mở. License của PenG chỉ áp dụng cho mã nguồn của dự án;
-model weights, OCR engine, FFmpeg, PyMuPDF và các dependency bên thứ ba có điều
-khoản riêng. Xem [Third-party notices](docs/THIRD_PARTY_NOTICES.md).
+## Giấy phép mở & Mục đích cấp phép (OSI-Approved License)
+
+PenG là phần mềm nguồn mở được cấp phép hoàn toàn theo **[MIT License](LICENSE)** — một giấy phép tự do nguồn mở được tổ chức **OSI (Open Source Initiative)** công nhận và phê chuẩn.
+
+- **Mục đích cấp phép:** Trao toàn quyền tự do cho người dùng, học sinh, sinh viên, giảng viên và các nhà nghiên cứu được tự do sử dụng, nghiên cứu mã nguồn, chỉnh sửa, tích hợp và tái phân phối phần mềm cho mọi mục đích học tập và phát triển phi thương mại hoặc thương mại mà không có bất kỳ rào cản độc quyền nào.
+- **Chuẩn SPDX:** 100% các tệp mã nguồn Python (`.py`) và tệp giao diện tĩnh (`static/index.html`) trong dự án đều được gắn định danh bản quyền chuẩn SPDX (`SPDX-License-Identifier: MIT`) ở đầu tệp.
+- **Giải trình tính tương thích giấy phép & Tính Module hóa:**
+  - PenG tuân thủ nguyên tắc kiến trúc module hóa phân tách độc lập (*loose coupling* / *modular separation*).
+  - Đối với thư viện `PyMuPDF` (sử dụng giấy phép kép GNU AGPL-3.0 hoặc giấy phép thương mại Artifex): PenG sử dụng PyMuPDF độc lập như một công cụ trích xuất văn bản (*isolated extraction utility*), không can thiệp, không sửa đổi, không liên kết tĩnh (*static link*) và không kế thừa mã nguồn của PyMuPDF. Tầng trích xuất tài liệu được thiết kế dạng plugin/adapter linh hoạt, cho phép người dùng thay thế hoàn toàn bằng Tesseract OCR, EasyOCR hoặc các thư viện trích xuất thuần Python khác khi cần mà không ảnh hưởng tới lõi hệ thống.
+  - Mã nguồn cốt lõi của PenG hoàn toàn giữ trọn giấy phép MIT License mở và tương thích tuyệt đối. Chi tiết kiểm toán giấy phép bên thứ ba xem tại [Third-party notices](docs/THIRD_PARTY_NOTICES.md).
 
 ## Kiến trúc
 
@@ -52,23 +61,57 @@ khoản riêng. Xem [Third-party notices](docs/THIRD_PARTY_NOTICES.md).
 | History | SQLite | Lịch sử học tập |
 | Colab | ngrok (`pyngrok`) | Public endpoint cho FastAPI |
 
-## Cài đặt
+## Cài đặt và dịch từ mã nguồn (Building & Installing from Source)
 
-```powershell
-# Tạo venv
+Dự án PenG tuân thủ chuẩn đóng gói hiện đại của Python theo **PEP 517 / PEP 621** (sử dụng `setuptools` build backend). Bạn có thể cài đặt, biên dịch gói phân phối mở hoặc khởi chạy ứng dụng theo các hướng dẫn dưới đây:
+
+### 1. Cài đặt trực tiếp từ mã nguồn
+```bash
+# Tạo và kích hoạt môi trường ảo (khuyến nghị)
 python -m venv .venv
+# Trên Windows:
 .venv\Scripts\Activate.ps1
+# Trên Linux/macOS:
+# source .venv/bin/activate
 
-# Cài dependencies
-pip install -r requirements.txt
+# Cài đặt trực tiếp package cùng dependencies từ source:
+pip install .
 
-# Chạy server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Hoặc cài đặt ở chế độ Editable (dành cho nhà phát triển/đóng góp code):
+pip install -e .
+```
 
-# Test (unit — không tải model)
+### 2. Biên dịch gói phân phối mở (sdist & wheel)
+Để đóng gói bản phân phối chuẩn mở theo chuẩn PEP 517 (tạo file source distribution `.tar.gz` và binary wheel `.whl` trong thư mục `dist/`):
+```bash
+# Cài đặt công cụ build chuẩn PEP 517
+python -m pip install build
+
+# Biên dịch gói mã nguồn mở và wheel
+python -m build
+```
+Ngoài ra, bạn có thể tạo gói mã nguồn mở độc lập (open format `.tar.gz`) phục vụ lưu trữ hoặc nộp bài thi thẩm định:
+```bash
+python scripts/package_release.py
+```
+Gói nén sẽ được tạo tự động tại `dist/PenG-1.0.0.tar.gz` (loại bỏ an toàn `.git`, cache, môi trường ảo và model weights lớn).
+
+### 3. Khởi chạy từ bất kỳ thư mục nào bằng lệnh CLI
+Sau khi cài đặt package, PenG cung cấp lệnh CLI `peng-server` (entrypoint được khai báo trong `pyproject.toml`) cho phép khởi chạy Uvicorn server từ bất kỳ đâu trên hệ thống:
+```bash
+# Khởi chạy server mặc định (127.0.0.1:8000)
+peng-server
+
+# Hoặc tùy biến host, port và bật chế độ reload:
+peng-server --host 0.0.0.0 --port 8000 --reload
+```
+
+### 4. Chạy kiểm thử (Testing)
+```bash
+# Chạy toàn bộ unit tests và functional tests (không tải model AI nặng)
 pytest tests/ -v -m "not integration"
 
-# Test tất cả (tải model AI)
+# Chạy kiểm thử tích hợp (yêu cầu GPU, FFmpeg, Tesseract)
 pytest tests/ -v
 ```
 
@@ -193,6 +236,15 @@ PenG/
 - Unit test: `pytest tests/ -v -m "not integration"`; integration test mới tải model AI.
 - Runtime paths trong `.env` có thể để tương đối (sẽ resolve từ project root) hoặc tuyệt đối.
 
+## Quản lý lỗi & Đóng góp (Bug Tracker & Community)
+
+PenG khuyến khích sự tham gia đóng góp, phản hồi và hoàn thiện từ cộng đồng nguồn mở:
+
+- **Hệ thống theo dõi lỗi & Tính năng (Bug Tracker):** Nếu gặp lỗi trong quá trình sử dụng, triển khai hoặc muốn đề xuất tính năng mới, vui lòng mở issue trực tiếp tại [GitHub Issues](https://github.com/canhcutlo/PenG/issues).
+- **Mẫu báo cáo chuẩn (Issue Templates):** Dự án cung cấp sẵn các biểu mẫu chuẩn tại [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/) gồm biểu mẫu báo cáo lỗi chi tiết (`bug_report.md`) và biểu mẫu đề xuất tính năng mới (`feature_request.md`).
+- **Quy trình đóng góp (Contributing Guidelines):** Vui lòng đọc kỹ hướng dẫn đóng góp mã nguồn, chuẩn phong cách code và quy trình kiểm thử trong [CONTRIBUTING.md](CONTRIBUTING.md) trước khi tạo Pull Request.
+- **Chính sách báo cáo bảo mật:** Để báo cáo an toàn các lỗ hổng bảo mật tiềm ẩn, vui lòng tham khảo [SECURITY.md](SECURITY.md).
+
 ## Tài liệu dự án
 
 - [AI pipeline](docs/AI_PIPELINE.md)
@@ -202,3 +254,4 @@ PenG/
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
 - [Demo checklist](docs/DEMO_CHECKLIST.md)
+

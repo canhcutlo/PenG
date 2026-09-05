@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """LLM integration: load Qwen/Llama model or a local GGUF, provide generation + embedding.
 
 - Lazy-load models only when needed (never on import/health check).

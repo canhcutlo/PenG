@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Faithfulness guard for RAG and chat answers.
 
 The guard ensures model answers are grounded in retrieved evidence. It:

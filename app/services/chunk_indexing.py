@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Build and persist document chunks for chat retrieval."""
 from app.services.chunking import build_chunks
 from app.db.chunk_store import insert_chunks, delete_chunks_for_doc

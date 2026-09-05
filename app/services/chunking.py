@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Chunking: split extracted text into chunks with metadata for indexing."""
 import re
 from dataclasses import dataclass, field

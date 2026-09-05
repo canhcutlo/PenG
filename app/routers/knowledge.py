@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Knowledge graph endpoints for document nodes and related edges."""
 from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import KnowledgeNodeResponse, KnowledgeEdgeResponse

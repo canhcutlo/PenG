@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 from fastapi import APIRouter, HTTPException, Depends, Request
 from app.models.schemas import LearningActivity
 from app.db.sqlite_store import get_activities, log_activity as db_log_activity

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
+# SPDX-License-Identifier: MIT
+
 """Pytest fixtures for PenG — DB initialization, cleanup, and auth bootstrap."""
 import pytest
 import shutil

@@ -1,3 +1,53 @@
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "peng"
+version = "1.0.0"
+description = "AI Học Tập Thông Minh — Ứng dụng học tập đa năng với STT, OCR, RAG và Mindmap"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Team PenG - Nguyễn Trung Thành", email = "canhcutlo113@gmail.com"}
+]
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "python-multipart>=0.0.9",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "aiofiles>=24.0",
+    "faster-whisper>=1.0",
+    "easyocr>=1.7",
+    "pytesseract>=0.3",
+    "pymupdf>=1.24",
+    "Pillow>=11.0",
+    "moviepy>=2.0",
+    "scenedetect>=0.6",
+    "opencv-python-headless>=4.9",
+    "lightrag-hku==1.5.5",
+    "instructor>=1.0",
+    "transformers>=4.40",
+    "torch>=2.3",
+    "bitsandbytes>=0.43",
+    "accelerate>=0.30",
+    "sentence-transformers>=3.0",
+    "pyngrok>=7.0",
+    "argon2-cffi>=23.0",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.25",
+    "httpx>=0.27",
+]
+
+[project.scripts]
+peng-server = "app.main:run_server"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
 [tool.pytest.ini_options]
 markers = [
     "integration: tests that download or run AI models",
