@@ -2,8 +2,26 @@
 # SPDX-License-Identifier: MIT
 
 from fastapi import APIRouter, HTTPException, Depends, Request
-from app.models.schemas import Quiz, QuizSubmission, QuizResult
-from app.db.sqlite_store import get_quiz, insert_quiz_result, insert_quiz, get_document, log_activity
+from app.models.schemas import (
+    Quiz,
+    QuizAttempt,
+    QuizAttemptListResponse,
+    QuizDiscoveryResponse,
+    QuizSubmission,
+    QuizResult,
+    QuizSummary,
+)
+from app.db.sqlite_store import (
+    count_quiz_attempts,
+    count_quizzes_for_document,
+    get_quiz,
+    insert_quiz_result,
+    insert_quiz,
+    get_document,
+    list_quiz_attempts,
+    list_quizzes_for_document,
+    log_activity,
+)
 from app.services.file_storage import get_document_file_path
 from app.services.quiz_gen import generate_quiz
 from app.services.extractor import extract, get_text_from_result
@@ -51,6 +69,51 @@ async def generate_quiz_endpoint(
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Quiz generation failed: {exc}")
+
+
+@router.get("/documents/{doc_id}/quizzes", response_model=QuizDiscoveryResponse)
+async def discover_document_quizzes(
+    doc_id: str,
+    limit: int = 50,
+    offset: int = 0,
+    user: dict = Depends(require_auth),
+):
+    """List quizzes and aggregate attempt stats for an owned document."""
+    if limit < 1 or limit > 200 or offset < 0:
+        raise HTTPException(status_code=422, detail="limit must be 1..200 and offset must be non-negative")
+    if not get_document(doc_id, user["user_id"]):
+        raise HTTPException(status_code=404, detail=f"Document {doc_id} not found")
+    rows = list_quizzes_for_document(doc_id, user["user_id"], limit, offset)
+    return QuizDiscoveryResponse(
+        doc_id=doc_id,
+        total=count_quizzes_for_document(doc_id, user["user_id"]),
+        limit=limit,
+        offset=offset,
+        quizzes=[QuizSummary(**row) for row in rows],
+    )
+
+
+@router.get("/quiz/{quiz_id}/attempts", response_model=QuizAttemptListResponse)
+async def get_quiz_attempts_endpoint(
+    quiz_id: str,
+    limit: int = 50,
+    offset: int = 0,
+    user: dict = Depends(require_auth),
+):
+    """List attempts for an owned quiz."""
+    if limit < 1 or limit > 200 or offset < 0:
+        raise HTTPException(status_code=422, detail="limit must be 1..200 and offset must be non-negative")
+    quiz = get_quiz(quiz_id, user["user_id"])
+    if not quiz:
+        raise HTTPException(status_code=404, detail=f"Quiz {quiz_id} not found")
+    rows = list_quiz_attempts(quiz_id, user["user_id"], limit, offset)
+    return QuizAttemptListResponse(
+        quiz_id=quiz_id,
+        total=count_quiz_attempts(quiz_id, user["user_id"]),
+        limit=limit,
+        offset=offset,
+        attempts=[QuizAttempt(**row) for row in rows],
+    )
 
 
 @router.get("/quiz/{quiz_id}", response_model=Quiz)

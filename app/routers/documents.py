@@ -1,13 +1,24 @@
 # Copyright (c) 2026 Team PenG - Nguyễn Trung Thành
 # SPDX-License-Identifier: MIT
 
-"""Document listing and artifact endpoints."""
+"""Document listing, source, and artifact endpoints."""
+import mimetypes
+from urllib.parse import quote
+
 from fastapi import APIRouter, HTTPException, Depends, Request
-from app.models.schemas import Artifact
+from fastapi.responses import FileResponse
+from app.models.schemas import Artifact, DocumentSourceResponse, SourceChunk
 from app.db.sqlite_store import get_document, get_documents_for_user
 from app.db.artifact_store import get_artifacts_by_doc, get_latest_artifact
+from app.db.chunk_store import (
+    count_source_chunks,
+    get_source_chunk,
+    get_source_chunk_by_locator,
+    list_source_chunks,
+)
 from app.services.artifacts import regenerate_artifact
 from app.services.auth import require_auth, verify_csrf
+from app.services.file_storage import get_document_file_path
 
 router = APIRouter()
 
@@ -35,6 +46,96 @@ async def list_documents(limit: int = 100, offset: int = 0, user: dict = Depends
         }
         for r in rows
     ]
+
+
+def _source_chunk_response(row: dict) -> SourceChunk:
+    return SourceChunk(
+        chunk_id=row["chunk_id"],
+        doc_id=row["doc_id"],
+        position=row["position"],
+        text=row["text"],
+        page=row.get("page"),
+        scene=row.get("scene"),
+        timestamp=row.get("timestamp"),
+        metadata=row.get("metadata") or {},
+    )
+
+
+@router.get("/documents/{doc_id}/source", response_model=DocumentSourceResponse)
+async def list_document_source(
+    doc_id: str,
+    limit: int = 100,
+    offset: int = 0,
+    chunk_id: str | None = None,
+    page: int | None = None,
+    scene: int | None = None,
+    timestamp: float | None = None,
+    user: dict = Depends(require_auth),
+):
+    """List source chunks for an owned document."""
+    if limit < 1 or limit > 500 or offset < 0:
+        raise HTTPException(status_code=422, detail="limit must be 1..500 and offset must be non-negative")
+    if not get_document(doc_id, user["user_id"]):
+        raise HTTPException(status_code=404, detail=f"Document {doc_id} not found")
+    located = get_source_chunk_by_locator(
+        doc_id,
+        user["user_id"],
+        chunk_id=chunk_id,
+        page=page,
+        scene=scene,
+        timestamp=timestamp,
+    )
+    if located:
+        offset = max(0, located["position"] - (located["position"] % limit))
+    rows = list_source_chunks(doc_id, user["user_id"], limit, offset)
+    return DocumentSourceResponse(
+        doc_id=doc_id,
+        total=count_source_chunks(doc_id, user["user_id"]),
+        limit=limit,
+        offset=offset,
+        chunks=[_source_chunk_response(row) for row in rows],
+    )
+
+
+@router.get("/documents/{doc_id}/source/chunks/{chunk_id}", response_model=SourceChunk)
+@router.get("/documents/{doc_id}/source/{chunk_id}", response_model=SourceChunk)
+async def get_document_source_chunk(
+    doc_id: str,
+    chunk_id: str,
+    user: dict = Depends(require_auth),
+):
+    """Get an exact source chunk from an owned document."""
+    if not get_document(doc_id, user["user_id"]):
+        raise HTTPException(status_code=404, detail=f"Document {doc_id} not found")
+    chunk = get_source_chunk(doc_id, chunk_id, user["user_id"])
+    if not chunk:
+        raise HTTPException(status_code=404, detail=f"Chunk {chunk_id} not found")
+    return _source_chunk_response(chunk)
+
+
+@router.get("/documents/{doc_id}/original")
+@router.get("/documents/{doc_id}/content")
+async def get_document_content(doc_id: str, user: dict = Depends(require_auth)):
+    """Return the original content for an owned document inline."""
+    doc = get_document(doc_id, user["user_id"])
+    if not doc:
+        raise HTTPException(status_code=404, detail=f"Document {doc_id} not found")
+    try:
+        file_path = get_document_file_path(doc_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Original content not found")
+    media_type = mimetypes.guess_type(doc["original_name"])[0] or "application/octet-stream"
+    safe_name = doc["original_name"].replace('"', "")
+    disposition = f"inline; filename=\"{safe_name}\"; filename*=UTF-8''{quote(doc['original_name'])}"
+    return FileResponse(
+        file_path,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": disposition,
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+        },
+    )
 
 
 @router.get("/documents/{doc_id}/artifacts")

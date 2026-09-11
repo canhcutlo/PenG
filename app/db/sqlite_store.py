@@ -79,6 +79,11 @@ def init_sqlite():
             user_id TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
+
+        CREATE INDEX IF NOT EXISTS idx_quizzes_user_doc_created
+            ON quizzes(user_id, doc_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_quiz_results_user_quiz_created
+            ON quiz_results(user_id, quiz_id, created_at DESC, id DESC);
     """)
     conn.commit()
 
@@ -272,6 +277,86 @@ def get_quiz(quiz_id: str, user_id: str | None = None) -> dict | None:
         d["questions"] = json.loads(d["questions_json"])
         return d
     return None
+
+
+def count_quizzes_for_document(doc_id: str, user_id: str) -> int:
+    conn = get_connection()
+    count = conn.execute(
+        "SELECT COUNT(*) FROM quizzes WHERE doc_id = ? AND user_id = ?",
+        (doc_id, user_id),
+    ).fetchone()[0]
+    conn.close()
+    return count
+
+
+def list_quizzes_for_document(
+    doc_id: str, user_id: str, limit: int = 50, offset: int = 0
+) -> list[dict]:
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT q.quiz_id, q.doc_id, q.questions_json, q.created_at,
+               COUNT(r.id) AS attempt_count,
+               MAX(r.score) AS best_score,
+               latest.score AS latest_score,
+               latest.created_at AS latest_attempt_at
+        FROM quizzes q
+        LEFT JOIN quiz_results r
+          ON r.quiz_id = q.quiz_id AND r.user_id = q.user_id
+        LEFT JOIN quiz_results latest ON latest.id = (
+            SELECT lr.id FROM quiz_results lr
+            WHERE lr.quiz_id = q.quiz_id AND lr.user_id = q.user_id
+            ORDER BY lr.created_at DESC, lr.id DESC LIMIT 1
+        )
+        WHERE q.doc_id = ? AND q.user_id = ?
+        GROUP BY q.quiz_id
+        ORDER BY q.created_at DESC, q.quiz_id DESC
+        LIMIT ? OFFSET ?
+        """,
+        (doc_id, user_id, limit, offset),
+    ).fetchall()
+    conn.close()
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["question_count"] = len(json.loads(item.pop("questions_json")))
+        result.append(item)
+    return result
+
+
+def count_quiz_attempts(quiz_id: str, user_id: str) -> int:
+    conn = get_connection()
+    count = conn.execute(
+        "SELECT COUNT(*) FROM quiz_results WHERE quiz_id = ? AND user_id = ?",
+        (quiz_id, user_id),
+    ).fetchone()[0]
+    conn.close()
+    return count
+
+
+def list_quiz_attempts(
+    quiz_id: str, user_id: str, limit: int = 50, offset: int = 0
+) -> list[dict]:
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT r.*, q.questions_json
+        FROM quiz_results r
+        JOIN quizzes q ON q.quiz_id = r.quiz_id AND q.user_id = r.user_id
+        WHERE r.quiz_id = ? AND r.user_id = ?
+        ORDER BY r.created_at DESC, r.id DESC
+        LIMIT ? OFFSET ?
+        """,
+        (quiz_id, user_id, limit, offset),
+    ).fetchall()
+    conn.close()
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["answers"] = json.loads(item.pop("answers_json"))
+        item["total"] = len(json.loads(item.pop("questions_json")))
+        result.append(item)
+    return result
 
 
 def insert_quiz_result(quiz_id: str, answers_json: str, score: int, user_id: str):

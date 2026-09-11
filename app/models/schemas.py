@@ -101,10 +101,30 @@ class Chunk(BaseModel):
 
 class Citation(BaseModel):
     doc_id: str
+    chunk_id: str | None = None
     page: int | None = None
     scene: int | None = None
     timestamp: float | None = None
     chunk_text: str
+
+
+class SourceChunk(BaseModel):
+    chunk_id: str
+    doc_id: str
+    position: int
+    text: str
+    page: int | None = None
+    scene: int | None = None
+    timestamp: float | None = None
+    metadata: dict = Field(default_factory=dict)
+
+
+class DocumentSourceResponse(BaseModel):
+    doc_id: str
+    total: int
+    limit: int
+    offset: int
+    chunks: list[SourceChunk] = Field(default_factory=list)
 
 
 class QueryResult(BaseModel):
@@ -123,8 +143,8 @@ class FaithfulAnswer(BaseModel):
 
 class QueryResponse(BaseModel):
     answer: str
-    citations: list[Citation] = []
-    related_chunks: list[QueryResult] = []
+    citations: list[Citation] = Field(default_factory=list)
+    related_chunks: list[QueryResult] = Field(default_factory=list)
 
 
 
@@ -152,16 +172,50 @@ class QuizResult(BaseModel):
     quiz_id: str
     score: int
     total: int
-    correct: list[int]
-    incorrect: list[int]
+    correct: list[int] = Field(default_factory=list)
+    incorrect: list[int] = Field(default_factory=list)
 
 
+class QuizSummary(BaseModel):
+    quiz_id: str
+    doc_id: str
+    question_count: int
+    attempt_count: int
+    best_score: int | None = None
+    latest_score: int | None = None
+    created_at: datetime
+    latest_attempt_at: datetime | None = None
+
+
+class QuizDiscoveryResponse(BaseModel):
+    doc_id: str
+    total: int
+    limit: int
+    offset: int
+    quizzes: list[QuizSummary] = Field(default_factory=list)
+
+
+class QuizAttempt(BaseModel):
+    id: int
+    quiz_id: str
+    answers: list[int] = Field(default_factory=list)
+    score: int
+    total: int
+    created_at: datetime
+
+
+class QuizAttemptListResponse(BaseModel):
+    quiz_id: str
+    total: int
+    limit: int
+    offset: int
+    attempts: list[QuizAttempt] = Field(default_factory=list)
 
 
 class MindmapNode(BaseModel):
     content: str
     level: int
-    children: list["MindmapNode"] = []
+    children: list["MindmapNode"] = Field(default_factory=list)
 
 
 
@@ -234,10 +288,10 @@ class ChatMessageResponse(BaseModel):
     message_id: str
     session_id: str
     answer: str
-    citations: list[Citation] = []
-    related_documents: list[RelatedDocument] = []
-    related_nodes: list[RelatedNode] = []
-    warnings: list[str] = []
+    citations: list[Citation] = Field(default_factory=list)
+    related_documents: list[RelatedDocument] = Field(default_factory=list)
+    related_nodes: list[RelatedNode] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
     model_id: str | None = None
     prompt_version: str | None = None
 
@@ -249,7 +303,7 @@ class KnowledgeNodeResponse(BaseModel):
     summary: str | None = None
     mindmap_markdown: str | None = None
     language: str | None = None
-    labels: list[str] = []
+    labels: list[str] = Field(default_factory=list)
     internal_consistency: float
     evidence_coverage: float
     extraction_quality: float

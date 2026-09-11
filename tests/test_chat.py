@@ -143,6 +143,7 @@ async def test_chat_citations_are_real(auth_client, monkeypatch):
     assert result["citations"]
     for citation in result["citations"]:
         assert citation["doc_id"] == doc_id
+        assert citation["chunk_id"] == f"{doc_id}:0"
         assert "Hà Nội" in citation["chunk_text"]
         assert citation.get("page") == 1
         assert citation.get("scene") is None

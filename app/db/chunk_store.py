@@ -28,6 +28,7 @@ def init_chunk_tables():
             chunk_id TEXT PRIMARY KEY,
             doc_id TEXT NOT NULL,
             user_id TEXT NOT NULL,
+            position INTEGER,
             text TEXT NOT NULL,
             page INTEGER,
             scene INTEGER,
@@ -35,10 +36,36 @@ def init_chunk_tables():
             metadata_json TEXT,
             created_at TEXT NOT NULL
         );
-
+        """
+    )
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(document_chunks)")}
+    if "position" not in columns:
+        conn.execute("ALTER TABLE document_chunks ADD COLUMN position INTEGER")
+    rows = conn.execute(
+        "SELECT chunk_id, doc_id FROM document_chunks WHERE position IS NULL ORDER BY doc_id, created_at, rowid"
+    ).fetchall()
+    next_positions: dict[str, int] = {}
+    for row in rows:
+        if row["doc_id"] not in next_positions:
+            current = conn.execute(
+                "SELECT COALESCE(MAX(position), -1) FROM document_chunks WHERE doc_id = ?",
+                (row["doc_id"],),
+            ).fetchone()[0]
+            next_positions[row["doc_id"]] = current + 1
+        conn.execute(
+            "UPDATE document_chunks SET position = ? WHERE chunk_id = ?",
+            (next_positions[row["doc_id"]], row["chunk_id"]),
+        )
+        next_positions[row["doc_id"]] += 1
+    conn.executescript(
+        """
         CREATE INDEX IF NOT EXISTS idx_chunks_doc_id ON document_chunks(doc_id);
         CREATE INDEX IF NOT EXISTS idx_chunks_user_id ON document_chunks(user_id);
         CREATE INDEX IF NOT EXISTS idx_chunks_user_doc ON document_chunks(user_id, doc_id);
+        CREATE INDEX IF NOT EXISTS idx_chunks_user_doc_position ON document_chunks(user_id, doc_id, position);
+        CREATE INDEX IF NOT EXISTS idx_chunks_user_doc_page ON document_chunks(user_id, doc_id, page);
+        CREATE INDEX IF NOT EXISTS idx_chunks_user_doc_scene ON document_chunks(user_id, doc_id, scene);
+        CREATE INDEX IF NOT EXISTS idx_chunks_user_doc_timestamp ON document_chunks(user_id, doc_id, timestamp);
         """
     )
     conn.commit()
@@ -51,12 +78,13 @@ def insert_chunks(chunks: list[dict], user_id: str):
     conn = get_connection()
     now = _now()
     rows = []
-    for chunk in chunks:
+    for position, chunk in enumerate(chunks):
         rows.append(
             (
                 chunk["chunk_id"],
                 chunk["doc_id"],
                 user_id,
+                chunk.get("position", position),
                 chunk["text"],
                 chunk.get("page"),
                 chunk.get("scene"),
@@ -68,8 +96,8 @@ def insert_chunks(chunks: list[dict], user_id: str):
     conn.executemany(
         """
         INSERT INTO document_chunks
-        (chunk_id, doc_id, user_id, text, page, scene, timestamp, metadata_json, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (chunk_id, doc_id, user_id, position, text, page, scene, timestamp, metadata_json, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         rows,
     )
@@ -81,15 +109,88 @@ def get_chunks_for_doc(doc_id: str, user_id: str | None = None) -> list[dict]:
     conn = get_connection()
     if user_id is not None:
         rows = conn.execute(
-            "SELECT * FROM document_chunks WHERE doc_id = ? AND user_id = ? ORDER BY chunk_id",
+            "SELECT * FROM document_chunks WHERE doc_id = ? AND user_id = ? ORDER BY position, chunk_id",
             (doc_id, user_id),
         ).fetchall()
     else:
         rows = conn.execute(
-            "SELECT * FROM document_chunks WHERE doc_id = ? ORDER BY chunk_id", (doc_id,)
+            "SELECT * FROM document_chunks WHERE doc_id = ? ORDER BY position, chunk_id", (doc_id,)
         ).fetchall()
     conn.close()
     return [_row_to_dict(r) for r in rows]
+
+
+def count_source_chunks(doc_id: str, user_id: str) -> int:
+    conn = get_connection()
+    count = conn.execute(
+        "SELECT COUNT(*) FROM document_chunks WHERE doc_id = ? AND user_id = ?",
+        (doc_id, user_id),
+    ).fetchone()[0]
+    conn.close()
+    return count
+
+
+def list_source_chunks(doc_id: str, user_id: str, limit: int = 100, offset: int = 0) -> list[dict]:
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT * FROM document_chunks
+        WHERE doc_id = ? AND user_id = ?
+        ORDER BY position, chunk_id LIMIT ? OFFSET ?
+        """,
+        (doc_id, user_id, limit, offset),
+    ).fetchall()
+    conn.close()
+    return [_row_to_dict(row) for row in rows]
+
+
+def get_source_chunk(doc_id: str, chunk_id: str, user_id: str) -> dict | None:
+    conn = get_connection()
+    row = conn.execute(
+        """
+        SELECT * FROM document_chunks
+        WHERE doc_id = ? AND chunk_id = ? AND user_id = ?
+        """,
+        (doc_id, chunk_id, user_id),
+    ).fetchone()
+    conn.close()
+    return _row_to_dict(row) if row else None
+
+
+def get_source_chunk_by_locator(
+    doc_id: str,
+    user_id: str,
+    chunk_id: str | None = None,
+    page: int | None = None,
+    scene: int | None = None,
+    timestamp: float | None = None,
+) -> dict | None:
+    if chunk_id is not None:
+        return get_source_chunk(doc_id, chunk_id, user_id)
+    conn = get_connection()
+    if page is not None:
+        row = conn.execute(
+            "SELECT * FROM document_chunks WHERE doc_id = ? AND user_id = ? AND page = ? ORDER BY position LIMIT 1",
+            (doc_id, user_id, page),
+        ).fetchone()
+    elif scene is not None:
+        row = conn.execute(
+            "SELECT * FROM document_chunks WHERE doc_id = ? AND user_id = ? AND scene = ? ORDER BY position LIMIT 1",
+            (doc_id, user_id, scene),
+        ).fetchone()
+    elif timestamp is not None:
+        row = conn.execute(
+            """
+            SELECT * FROM document_chunks
+            WHERE doc_id = ? AND user_id = ? AND timestamp IS NOT NULL
+            ORDER BY ABS(timestamp - ?), position LIMIT 1
+            """,
+            (doc_id, user_id, timestamp),
+        ).fetchone()
+    else:
+        row = None
+    conn.close()
+    return _row_to_dict(row) if row else None
 
 
 def get_chunks_for_docs(doc_ids: list[str], user_id: str) -> list[dict]:
@@ -101,7 +202,7 @@ def get_chunks_for_docs(doc_ids: list[str], user_id: str) -> list[dict]:
         f"""
         SELECT * FROM document_chunks
         WHERE doc_id IN ({placeholders}) AND user_id = ?
-        ORDER BY chunk_id
+        ORDER BY doc_id, position, chunk_id
         """,
         (*doc_ids, user_id),
     ).fetchall()
@@ -116,7 +217,7 @@ def get_chunks_for_user(user_id: str, exclude_doc_id: str | None = None, limit: 
             """
             SELECT * FROM document_chunks
             WHERE user_id = ? AND doc_id != ?
-            ORDER BY created_at DESC
+            ORDER BY created_at DESC, position
             LIMIT ?
             """,
             (user_id, exclude_doc_id, limit),
@@ -126,7 +227,7 @@ def get_chunks_for_user(user_id: str, exclude_doc_id: str | None = None, limit: 
             """
             SELECT * FROM document_chunks
             WHERE user_id = ?
-            ORDER BY created_at DESC
+            ORDER BY created_at DESC, position
             LIMIT ?
             """,
             (user_id, limit),
