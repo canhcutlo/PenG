@@ -34,25 +34,41 @@ async def ocr_pdf(pdf_path: str) -> str:
 
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 async def _tesseract_ocr(image_path: str) -> str:
     import pytesseract
 
-    img = Image.open(image_path)
-    return pytesseract.image_to_string(img, lang="vie+eng").strip()
+    try:
+        img = Image.open(image_path)
+        return pytesseract.image_to_string(img, lang="vie+eng").strip()
+    except Exception as exc:
+        logger.warning("Tesseract OCR unavailable or failed: %s", exc)
+        return ""
 
 
 async def _tesseract_ocr_pdf(pdf_path: str) -> str:
     import pytesseract
 
-    doc = fitz.open(pdf_path)
-    texts = []
-    for page in doc:
-        img = _page_to_image(page)
-        text = pytesseract.image_to_string(img, lang="vie+eng").strip()
-        if text:
-            texts.append(f"[Page {page.number + 1}]\n{text}")
-    doc.close()
-    return "\n\n".join(texts)
+    try:
+        doc = fitz.open(pdf_path)
+        texts = []
+        for page in doc:
+            img = _page_to_image(page)
+            try:
+                text = pytesseract.image_to_string(img, lang="vie+eng").strip()
+            except Exception:
+                text = ""
+            if text:
+                texts.append(f"[Page {page.number + 1}]\n{text}")
+        doc.close()
+        return "\n\n".join(texts)
+    except Exception as exc:
+        logger.warning("Tesseract OCR PDF failed: %s", exc)
+        return ""
 
 
 

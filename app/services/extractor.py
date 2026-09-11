@@ -15,6 +15,25 @@ async def extract(file_path: str, category: str) -> dict:
         text = await ocr_image(file_path)
         return {"text": text, "pages": 1}
     elif category == "pdf":
+        from pathlib import Path
+        ext = Path(file_path).suffix.lower()
+        if ext in (".txt", ".md"):
+            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+                text = f.read()
+            return {"text": text, "pages": 1}
+        elif ext in (".docx", ".doc"):
+            try:
+                import fitz
+                doc = fitz.open(file_path)
+                page_texts = [page.get_text() for page in doc]
+                doc.close()
+                text = "\n\n".join(page_texts).strip()
+            except Exception:
+                import zipfile, xml.etree.ElementTree as ET
+                z = zipfile.ZipFile(file_path)
+                tree = ET.fromstring(z.read("word/document.xml"))
+                text = "".join(tree.itertext()).strip()
+            return {"text": text, "pages": 1}
         text = await extract_native_pdf_text(file_path)
         return {"text": text, "pages": 1}
     elif category == "video":

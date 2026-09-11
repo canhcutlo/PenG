@@ -12,14 +12,22 @@ from app.config import settings
 EXTENSION_MAP = {
     "audio": {".mp3", ".wav", ".m4a", ".ogg", ".flac"},
     "image": {".png", ".jpg", ".jpeg", ".bmp", ".tiff"},
-    "pdf": {".pdf"},
+    "pdf": {".pdf", ".txt", ".md", ".docx", ".doc"},
     "video": {".mp4", ".avi", ".mov", ".mkv"},
 }
 
 MIME_MAP = {
     "audio": {"audio/mpeg", "audio/wav", "audio/x-wav", "audio/m4a", "audio/ogg", "audio/flac"},
     "image": {"image/png", "image/jpeg", "image/bmp", "image/tiff"},
-    "pdf": {"application/pdf"},
+    "pdf": {
+        "application/pdf",
+        "text/plain",
+        "text/markdown",
+        "text/x-markdown",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+        "application/octet-stream",
+    },
     "video": {"video/mp4", "video/x-msvideo", "video/quicktime", "video/x-matroska"},
 }
 
