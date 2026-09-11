@@ -34,6 +34,15 @@ def test_mindmap_validation_rejects_wrong_bullet_count():
     assert not validate_mindmap_structure(md)
 
 
+def test_mindmap_validation_rejects_empty_branch_and_flat_text():
+    assert not validate_mindmap_structure("# A\n## B\n## C\n- c1\n- c2\n## D\n- d1\n- d2")
+    assert not validate_mindmap_structure("Chủ đề\n- Ý một\n- Ý hai")
+
+
+def test_mindmap_validation_rejects_bullets_before_heading():
+    assert not validate_mindmap_structure("# A\n- stray\n## B\n- b1\n- b2\n## C\n- c1\n- c2\n## D\n- d1\n- d2")
+
+
 def test_sanitize_mindmap_removes_html_and_fences():
     raw = "# A\n<script>alert(1)</script>\n```py\ncode\n```\n#### deep"
     out = sanitize_mindmap(raw)
