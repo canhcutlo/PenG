@@ -2,9 +2,12 @@
   "name": "penG-frontend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "PenG frontend — static HTML, CSS and JavaScript",
   "scripts": {
-    "build": "echo 'No build step required; static files served directly by FastAPI'",
+    "build": "node --check static/js/app.js && node --check static/js/api.js && node --check static/js/canvas.js && node --check static/js/dom.js && node --check static/js/router.js && node --check static/js/source.js && node --check static/js/state.js",
+    "test": "node --test tests/frontend/*.test.js",
+    "check": "npm run build && npm test",
     "dev": "npx live-server static/ --port=3000 --proxy=/api:http://localhost:8000/api"
   },
   "devDependencies": {
