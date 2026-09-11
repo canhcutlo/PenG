@@ -34,7 +34,12 @@ async def generate_quiz(text: str, num_questions: int = 5) -> QuizOutput:
     within the retry bound.
     """
     prompt = build_quiz_prompt(text, num_questions)
-    quiz = await generate_structured(prompt, QuizOutput)
+    quiz = await generate_structured(
+        prompt,
+        QuizOutput,
+        max_retries=2,
+        max_new_tokens=min(768, max(320, num_questions * 150)),
+    )
     return quiz
 
 
