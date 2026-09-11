@@ -50,9 +50,6 @@ def _setup(monkeypatch):
     monkeypatch.setattr(
         "app.services.mindmap_gen.complete", fake_complete
     )
-    monkeypatch.setattr(
-        "app.services.summary_gen.complete", fake_complete
-    )
 
 
 def _upload_png(auth_client, content: bytes = None):

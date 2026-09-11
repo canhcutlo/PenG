@@ -35,16 +35,21 @@ class MockResult(BaseModel):
 
 @pytest.mark.asyncio
 async def test_generate_structured_valid_json(monkeypatch):
-    monkeypatch.setattr(
-        structured,
-        "completion_func",
-        _make_fake_llm(json_payload=json.dumps({"name": "test", "value": 5})),
-    )
+    captured = {}
+
+    async def fake(prompt, system_prompt=None, **kwargs):
+        captured.update(kwargs)
+        return json.dumps({"name": "test", "value": 5})
+
+    monkeypatch.setattr(structured, "completion_func", fake)
     result = await structured.generate_structured(
-        "prompt", MockResult, use_instructor=False
+        "prompt", MockResult, use_instructor=False, max_new_tokens=128
     )
     assert result.name == "test"
     assert result.value == 5
+    assert captured["response_schema"] == MockResult.model_json_schema()
+    assert captured["max_new_tokens"] == 128
+    assert captured["raise_on_error"] is True
 
 
 @pytest.mark.asyncio
@@ -176,3 +181,11 @@ def test_build_mindmap_prompt():
 def test_build_summary_prompt():
     p = build_summary_prompt("text")
     assert "bullet" in p.lower() or "-" in p
+
+
+def test_extract_json_tolerates_literal_newlines_in_strings():
+    """Local models emit real newlines inside string values (e.g. bullet lists)."""
+    raw = '{\n  "answer": "Tóm tắt:\n- Ý 1\n- Ý 2",\n  "polarity": "yes"\n}'
+    data = structured._extract_json(raw)
+    assert data["answer"] == "Tóm tắt:\n- Ý 1\n- Ý 2"
+    assert data["polarity"] == "yes"

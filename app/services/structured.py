@@ -30,7 +30,12 @@ completion_func = complete
 
 
 class GenerationError(Exception):
-    """Raised when structured generation fails after retries."""
+    """Raised when structured generation fails after bounded retries."""
+
+    def __init__(self, message: str, reason: str = "validation", detail: str = ""):
+        super().__init__(message)
+        self.reason = reason
+        self.detail = detail or message
 
 
 def _extract_json(raw: str) -> dict:
@@ -49,7 +54,7 @@ def _extract_json(raw: str) -> dict:
     if start == -1 or end == -1 or end <= start:
         raise ValueError("No JSON object found in LLM output")
 
-    return json.loads(text[start : end + 1])
+    return json.loads(text[start : end + 1], strict=False)
 
 
 async def generate_structured(
@@ -58,36 +63,45 @@ async def generate_structured(
     system_prompt: str | None = None,
     max_retries: int = MAX_RETRIES,
     use_instructor: bool | None = None,
+    max_new_tokens: int = 512,
+    response_schema: dict | None = None,
 ) -> T:
-    """Generate a structured response matching `response_model`.
-
-    - Validates with the Pydantic model; retries with error feedback.
-    - Raises GenerationError after `max_retries` failures.
-    """
+    """Generate and validate a schema-constrained response."""
     use_instructor = settings.use_instructor if use_instructor is None else use_instructor
 
     if use_instructor:
         return await _generate_with_instructor(prompt, response_model, system_prompt)
 
     error_hint = None
+    last_reason = "validation"
     for attempt in range(max_retries):
+        full_prompt = prompt if error_hint is None else (
+            f"{prompt}\n\nFix this validation error: {error_hint}"
+        )
         try:
-            full_prompt = prompt if error_hint is None else (
-                f"{prompt}\n\nYour previous response failed validation. Fix this:\n{error_hint}"
-            )
             raw = await completion_func(
                 full_prompt,
                 system_prompt=system_prompt or _default_system_prompt(response_model),
-                max_new_tokens=1024,
+                max_new_tokens=max_new_tokens,
+                response_schema=response_schema or response_model.model_json_schema(),
+                raise_on_error=True,
             )
             data = _extract_json(raw)
             return response_model.model_validate(data)
         except (ValidationError, ValueError, json.JSONDecodeError) as exc:
             error_hint = _format_validation_error(exc)
+            last_reason = "invalid_output"
             logger.warning("Structured generation attempt %d failed: %s", attempt + 1, error_hint)
+        except RuntimeError as exc:
+            error_hint = str(exc)
+            last_reason = "runtime"
+            logger.error("Structured generation runtime failure: %s", error_hint)
+            break
 
     raise GenerationError(
-        f"Failed to generate valid {response_model.__name__} after {max_retries} attempts"
+        f"Failed to generate valid {response_model.__name__}",
+        reason=last_reason,
+        detail=error_hint or "Unknown structured generation failure",
     )
 
 

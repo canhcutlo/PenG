@@ -152,20 +152,32 @@ async def complete(
     prompt: str,
     system_prompt: str | None = None,
     max_new_tokens: int = 512,
+    response_schema: dict | None = None,
+    raise_on_error: bool = False,
     **kwargs,
 ) -> str:
-    """Generate a completion. Falls back to fake reply if LLM not loadable."""
+    """Generate a completion, optionally constrained to a JSON schema."""
     try:
         llm = _get_llm()
     except Exception as exc:
+        if raise_on_error:
+            raise RuntimeError(f"LLM unavailable: {exc}") from exc
         logger.warning("LLM not available, using fake completion: %s", exc)
         return _fake_completion(prompt, system_prompt)
 
     try:
         if settings.llm_runtime == "llama_cpp":
-            return await _complete_llama_cpp(llm, prompt, system_prompt, max_new_tokens)
+            return await _complete_llama_cpp(
+                llm,
+                prompt,
+                system_prompt,
+                max_new_tokens,
+                response_schema=response_schema,
+            )
         return await _complete_transformers(llm, prompt, system_prompt, max_new_tokens)
     except Exception as exc:
+        if raise_on_error:
+            raise RuntimeError(f"LLM generation failed: {exc}") from exc
         logger.warning("LLM generation failed, using fake completion: %s", exc)
         return _fake_completion(prompt, system_prompt)
 
@@ -206,27 +218,41 @@ async def _complete_llama_cpp(
     prompt: str,
     system_prompt: str | None,
     max_new_tokens: int,
+    response_schema: dict | None = None,
 ) -> str:
     messages = _build_messages(prompt, system_prompt)
+    response_format = None
+    if response_schema:
+        response_format = {"type": "json_object", "schema": response_schema}
+
+    chat_kwargs = {
+        "messages": messages,
+        "max_tokens": max_new_tokens,
+        "temperature": 0.1 if response_schema else 0.3,
+    }
+    if response_format:
+        chat_kwargs["response_format"] = response_format
 
     try:
-        response = llm.create_chat_completion(
-            messages=messages,
-            max_tokens=max_new_tokens,
-            temperature=0.3,
-        )
+        response = llm.create_chat_completion(**chat_kwargs)
     except Exception:
-        # Fallback for chat-format incompatible GGUFs: use a simple prompt string.
         prompt_text = ""
         if system_prompt:
             prompt_text += f"System: {system_prompt}\n\n"
         prompt_text += f"User: {prompt}\n\nAssistant:"
-        response = llm(
-            prompt=prompt_text,
-            max_tokens=max_new_tokens,
-            temperature=0.3,
-            stop=["User:", "</s>"],
-        )
+        completion_kwargs = {
+            "prompt": prompt_text,
+            "max_tokens": max_new_tokens,
+            "temperature": 0.1 if response_schema else 0.3,
+            "stop": ["User:", "</s>"],
+        }
+        if response_schema:
+            from llama_cpp import LlamaGrammar
+            import json
+            completion_kwargs["grammar"] = LlamaGrammar.from_json_schema(
+                json.dumps(response_schema)
+            )
+        response = llm(**completion_kwargs)
 
     if isinstance(response, dict):
         choices = response.get("choices") or []

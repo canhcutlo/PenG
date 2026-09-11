@@ -131,28 +131,20 @@ FAITHFUL_ANSWER_SYSTEM = (
     "and the question asks about outsiders/non-members, answer 'no' or 'unknown', never 'yes'."
 )
 
-FAITHFUL_ANSWER_PROMPT = """Use ONLY the evidence below to answer the question.
+FAITHFUL_ANSWER_PROMPT = """Answer the question using ONLY the evidence.
 
 Evidence:
 {context}
 
 Question: {question}
-
 {history}
 
-Respond with JSON matching this schema:
-{{
-  "answer": "your concise answer in {language} ({language_label})",
-  "polarity": "yes|no|unknown",
-  "evidence_ids": ["E1", ...],
-  "warnings": []
-}}
-
 Rules:
-- The answer MUST be in {language} ({language_label}). Do not switch languages based on the evidence.
-- evidence_ids must reference ONLY the evidence IDs listed above.
-- Do not fabricate evidence IDs.
-- If the evidence does not fully answer the question, say so and set polarity to 'unknown'."""
+- Write answer in {language} ({language_label}).
+- Cite only listed evidence IDs.
+- Use polarity unknown when evidence is insufficient.
+- For restrictive questions, do not reverse the restriction.
+- Return only the requested JSON object."""
 
 
 def build_faithful_answer_prompt(
@@ -171,29 +163,22 @@ def build_faithful_answer_prompt(
     )
 
 
-FAITHFUL_CHAT_PROMPT = """You are in a chat about uploaded learning materials. Use ONLY the evidence below.
+FAITHFUL_CHAT_PROMPT = """Answer the latest question using ONLY the evidence.
 
-Conversation history:
+History:
 {history}
 
 Evidence:
 {context}
 
-User question: {question}
-
-Respond with JSON matching this schema:
-{{
-  "answer": "your concise answer in {language} ({language_label})",
-  "polarity": "yes|no|unknown",
-  "evidence_ids": ["E1", ...],
-  "warnings": []
-}}
+Question: {question}
 
 Rules:
-- The answer MUST be in {language} ({language_label}). The user's latest question language decides the output language, not the noisy evidence language.
-- evidence_ids must reference ONLY the evidence IDs listed above.
-- Do not fabricate evidence IDs.
-- If the evidence does not fully answer the question, say so and set polarity to 'unknown'."""
+- Write answer in {language} ({language_label}).
+- Cite only listed evidence IDs.
+- Use polarity unknown when evidence is insufficient.
+- For restrictive questions, do not reverse the restriction.
+- Return only the requested JSON object."""
 
 
 def build_faithful_chat_prompt(

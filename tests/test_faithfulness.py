@@ -275,6 +275,27 @@ async def test_generate_faithful_answer_eligibility_override(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_generate_faithful_answer_invalid_json_uses_extractive_fallback(monkeypatch):
+    evidence = [
+        EvidenceItem(
+            id="E1",
+            doc_id="d1",
+            chunk_id="c1",
+            text="Dreamwrl là game sinh tồn 2D với chiến đấu cận chiến và tầm xa.",
+            page=1,
+            scene=None,
+            timestamp=None,
+        ),
+    ]
+    monkeypatch.setattr(structured, "completion_func", _make_fake_llm(["invalid json"]))
+    result = await generate_faithful_answer("Tóm tắt các ý chính", evidence)
+    assert "Dreamwrl" in result.answer
+    assert "không tìm thấy đủ bằng chứng" not in result.answer.lower()
+    assert result.evidence_ids == ["E1"]
+    assert any("json schema" in warning.lower() for warning in result.warnings)
+
+
+@pytest.mark.asyncio
 async def test_generate_faithful_answer_bounded_retry_then_safe(monkeypatch):
     evidence = [
         EvidenceItem(

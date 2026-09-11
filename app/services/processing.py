@@ -91,10 +91,8 @@ async def process_document(doc_id: str, job_id: str, user_id: str):
 
         if settings.index_on_upload:
             await _report("indexing", 55)
-            from app.services.rag import index_document
-            await index_document(doc_id, text, user_id=user_id)
             await index_document_chunks(doc_id, text, user_id, category)
-            logger.info("Indexed document %s for user %s (%d chars)", doc_id, user_id, len(text))
+            logger.info("Indexed document chunks %s for user %s (%d chars)", doc_id, user_id, len(text))
 
         try:
             await generate_artifacts_for_document(

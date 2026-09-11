@@ -99,6 +99,29 @@ async def _fake_embed(texts):
 
 
 @pytest.mark.asyncio
+async def test_overview_retrieval_samples_document_without_embedding(monkeypatch):
+    from app.services import retrieval
+
+    chunks = [
+        {"chunk_id": f"doc:{index}", "doc_id": "doc", "text": f"chunk {index}"}
+        for index in range(10)
+    ]
+
+    async def fail_embed(_texts):
+        raise AssertionError("overview retrieval must not call embedding")
+
+    monkeypatch.setattr(retrieval, "get_chunks_for_doc", lambda *_args: chunks)
+    monkeypatch.setattr(retrieval, "embed", fail_embed)
+
+    result = await retrieval.retrieve_chunks(
+        "Tóm tắt các ý chính", user_id="u1", doc_id="doc", top_k=5
+    )
+    assert [chunk["chunk_id"] for chunk in result] == [
+        "doc:0", "doc:2", "doc:4", "doc:7", "doc:9"
+    ]
+
+
+@pytest.mark.asyncio
 async def test_rag_index_and_query_with_fake_embedding(tmp_path):
     """Index then query using LightRAG with fake embedding + fake LLM.
 

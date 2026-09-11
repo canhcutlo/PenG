@@ -9,6 +9,31 @@ from app.services.llm import embed
 
 logger = logging.getLogger(__name__)
 
+_OVERVIEW_TERMS = (
+    "tóm tắt",
+    "ý chính",
+    "tổng quan",
+    "nội dung chính",
+    "summarize",
+    "summary",
+    "main points",
+    "overview",
+)
+
+
+def _is_overview_query(query: str) -> bool:
+    normalized = query.casefold().strip()
+    return any(term in normalized for term in _OVERVIEW_TERMS)
+
+
+def _sample_evenly(chunks: list[dict], limit: int) -> list[dict]:
+    if len(chunks) <= limit:
+        return chunks
+    if limit <= 1:
+        return [chunks[0]]
+    indices = [round(i * (len(chunks) - 1) / (limit - 1)) for i in range(limit)]
+    return [chunks[index] for index in indices]
+
 
 def _cosine_similarity(query_vec: np.ndarray, vectors: np.ndarray) -> np.ndarray:
     if vectors.size == 0:
@@ -47,6 +72,9 @@ async def retrieve_chunks(
 
     if not candidates:
         return []
+
+    if doc_id and _is_overview_query(query):
+        return [{**chunk, "score": 1.0} for chunk in _sample_evenly(candidates, top_k)]
 
     try:
         embeddings = await embed([query] + [c["text"] for c in candidates])

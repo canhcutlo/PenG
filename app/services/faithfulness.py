@@ -245,28 +245,59 @@ def apply_guard_rules(
     return guarded, all_warnings
 
 
+def _extractive_fallback_answer(evidence: list[EvidenceItem], language: str) -> str:
+    snippets: list[str] = []
+    for item in evidence[:5]:
+        text = re.sub(r"\s+", " ", item.text).strip()
+        if not text:
+            continue
+        snippet = text[:240].rsplit(" ", 1)[0] if len(text) > 240 else text
+        snippets.append(f"- {snippet}")
+    if language == "en":
+        heading = "The model could not format a final answer. Relevant source excerpts:"
+    else:
+        heading = "Mô hình chưa định dạng được câu trả lời hoàn chỉnh. Các đoạn nguồn liên quan:"
+    return f"{heading}\n" + "\n".join(snippets)
+
+
+def _generation_warning(error: GenerationError, language: str) -> str:
+    if error.reason == "runtime":
+        return (
+            "Local model execution failed; an extractive answer was returned."
+            if language == "en"
+            else "Model cục bộ gặp lỗi khi chạy; hệ thống đã trả kết quả trích xuất từ nguồn."
+        )
+    return (
+        "The model output did not match the required JSON schema; an extractive answer was returned."
+        if language == "en"
+        else "Model trả dữ liệu không đúng JSON schema; hệ thống đã trả kết quả trích xuất từ nguồn."
+    )
+
+
 def _build_safe_fallback(
     evidence: list[EvidenceItem],
     extra_warnings: list[str],
     question: str = "",
     language: str = "vi",
+    generation_error: GenerationError | None = None,
 ) -> FaithfulAnswer:
-    """Return a conservative fallback when structured generation fails."""
+    """Return a grounded fallback that preserves the actual failure mode."""
     restricted_ids = _detect_restrictive_evidence(evidence)
     if restricted_ids and _detect_outsider_question(question):
         return FaithfulAnswer(
             answer=_safe_eligibility_answer(question, language),
             polarity="no",
             evidence_ids=restricted_ids,
-            warnings=extra_warnings
-            or ["Câu trả lờI không vượt qua kiểm tra faithfulness sau khi thử lạI."],
+            warnings=extra_warnings,
         )
+    warnings = list(extra_warnings)
+    if generation_error:
+        warnings.append(_generation_warning(generation_error, language))
     return FaithfulAnswer(
-        answer=_no_evidence_answer(language),
+        answer=_extractive_fallback_answer(evidence, language),
         polarity="unknown",
         evidence_ids=[item.id for item in evidence],
-        warnings=extra_warnings
-        or ["Câu trả lờI không vượt qua kiểm tra faithfulness sau khi thử lạI."],
+        warnings=warnings,
     )
 
 
@@ -296,6 +327,13 @@ async def generate_faithful_answer(
         )
 
     context = format_evidence_for_prompt(evidence)
+    response_schema = FaithfulAnswer.model_json_schema()
+    response_schema["required"] = ["answer", "polarity", "evidence_ids", "warnings"]
+    evidence_schema = response_schema["properties"]["evidence_ids"]
+    evidence_schema["items"] = {"enum": [item.id for item in evidence]}
+    evidence_schema["minItems"] = 1
+    evidence_schema["maxItems"] = len(evidence)
+    response_schema["properties"]["warnings"]["maxItems"] = 0
     if is_chat:
         base_prompt = build_faithful_chat_prompt(
             question=question,
@@ -313,14 +351,12 @@ async def generate_faithful_answer(
 
     guard_warnings: list[str] = []
     prompt = base_prompt
+    generation_error: GenerationError | None = None
 
     for attempt in range(max_retries + 1):
         if attempt > 0 and guard_warnings:
-            hint = "\n".join(f"- {w}" for w in guard_warnings)
-            prompt = (
-                f"{base_prompt}\n\nYour previous response failed faithfulness validation. "
-                f"Fix these issues and respond with valid JSON only:\n{hint}"
-            )
+            hint = "\n".join(f"- {warning}" for warning in guard_warnings)
+            prompt = f"{base_prompt}\n\nCorrect these evidence issues:\n{hint}"
 
         try:
             raw = await generate_structured(
@@ -329,16 +365,24 @@ async def generate_faithful_answer(
                 system_prompt=FAITHFUL_ANSWER_SYSTEM,
                 max_retries=1,
                 use_instructor=False,
+                max_new_tokens=384,
+                response_schema=response_schema,
             )
-        except GenerationError:
+        except GenerationError as exc:
+            generation_error = exc
             break
 
         guarded, guard_warnings = apply_guard_rules(raw, evidence, question, language)
         if not guard_warnings:
             return guarded
 
-    # Fallback: deterministic eligibility guard still applies even without model output.
-    return _build_safe_fallback(evidence, guard_warnings, question, language)
+    return _build_safe_fallback(
+        evidence,
+        guard_warnings,
+        question,
+        language,
+        generation_error=generation_error,
+    )
 
 
 def evidence_item_to_citation(item: EvidenceItem) -> dict:
@@ -347,6 +391,7 @@ def evidence_item_to_citation(item: EvidenceItem) -> dict:
 
     return Citation(
         doc_id=item.doc_id,
+        chunk_id=item.chunk_id,
         page=item.page,
         scene=item.scene,
         timestamp=item.timestamp,

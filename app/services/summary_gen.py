@@ -3,28 +3,20 @@
 
 """Summary generation with versioned prompt and validation."""
 import re
-from pydantic import BaseModel, Field, ValidationError, field_validator
-from app.services.llm import complete
-from app.services.structured import _extract_json, GenerationError
+from pydantic import BaseModel, Field, field_validator
+from app.services.structured import generate_structured
 
 SUMMARY_PROMPT_VERSION = "v1"
 
-SUMMARY_SYSTEM = (
-    "Bạn là trợ lý học tập. Tóm tắt nội dung sau thành các ý chính dạng bullet points. "
-    "Trả về JSON theo schema được cung cấp."
-)
+SUMMARY_SYSTEM = "Tóm tắt chính xác nội dung nguồn. Chỉ trả về JSON theo schema."
 
-SUMMARY_PROMPT = """Tóm tắt tài liệu sau thành các ý chính dạng bullet points.
-- Mỗi bullet tối đa 25 từ.
-- Tối đa 8 bullets.
-- Dùng tiếng Việt nếu văn bản tiếng Việt.
-- Không lai ngôn ngữ vô lý, không thêm thông tin không có trong văn bản.
+SUMMARY_PROMPT = """Tóm tắt nội dung thành 4-8 ý chính.
+- Mỗi ý tối đa 25 từ.
+- Giữ ngôn ngữ của nội dung.
+- Không thêm thông tin ngoài nguồn.
 
-Text:
-{text}
-
-Trả về JSON đúng schema:
-{{"bullets": ["ý 1", "ý 2", ...]}}"""
+Nội dung:
+{text}"""
 
 
 class SummaryOutput(BaseModel):
@@ -39,21 +31,17 @@ class SummaryOutput(BaseModel):
         return v
 
 
-async def generate_summary(text: str, max_retries: int = 3) -> str:
+async def generate_summary(text: str, max_retries: int = 2) -> str:
     """Generate a validated Markdown summary from text."""
-    prompt = SUMMARY_PROMPT.format(text=text[:6000])
-    last_error = None
-    for attempt in range(max_retries):
-        try:
-            raw = await complete(prompt, system_prompt=SUMMARY_SYSTEM, max_new_tokens=1024)
-            data = _extract_json(raw)
-            summary = SummaryOutput.model_validate(data)
-            return _format_summary(summary.bullets)
-        except (ValidationError, ValueError) as exc:
-            last_error = str(exc)
-            prompt = prompt + f"\n\nPrevious response invalid: {last_error}. Fix it."
-
-    raise GenerationError(f"Summary generation failed: {last_error}")
+    summary = await generate_structured(
+        SUMMARY_PROMPT.format(text=text[:4000]),
+        SummaryOutput,
+        system_prompt=SUMMARY_SYSTEM,
+        max_retries=max_retries,
+        use_instructor=False,
+        max_new_tokens=384,
+    )
+    return _format_summary(summary.bullets)
 
 
 def _format_summary(bullets: list[str]) -> str:
