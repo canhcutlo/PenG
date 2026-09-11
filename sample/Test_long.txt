@@ -1,0 +1,647 @@
+﻿GDD – Dreamwrl: MVP
+1. Tổng quan
+1.1. Tên dự án
+Dreamwrl– MVP
+1.2. Thể loại
+2D Survival / Battle Royale / PvP-PvE
+1.3. Nền tảng
+Mobile, web
+1.4. Đối tượng người chơi
+Người chơi phổ thông, ưu tiên gameplay đơn giản, dễ hiểu và có thể bắt đầu trận đấu nhanh.
+1.5. Mục tiêu của MVP
+MVP tập trung kiểm chứng gameplay cốt lõi:
+* Người chơi có thể di chuyển tự do trong một map rộng.
+* Người chơi có 2 loại vũ khí: cận chiến và tầm xa.
+* Người chơi có thể tấn công các đối thủ bằng cả hai loại vũ khí.
+* Người chơi có thể sử dụng địa hình, chướng ngại vật và bụi cây để di chuyển hoặc ẩn nấp.
+* Người chơi có thể bị thương và bị hạ khi HP về 0.
+* Bot có khả năng chiến đấu tương tự người chơi.
+* Một trận đấu kết thúc khi chỉ còn một người sống sót.
+* Người chơi có thể thắng hoặc thua trong một trận đấu hoàn chỉnh.
+MVP không tập trung vào progression, loot, character customization hoặc hệ thống meta-game.
+2. Game Concept
+Người chơi được đưa vào một map 2D rộng cùng với các đối thủ khác.
+Mỗi người chơi bắt đầu trận đấu với:
+* HP đầy.
+* 1 vũ khí cận chiến.
+* 1 vũ khí tầm xa.
+Người chơi phải di chuyển, tìm vị trí có lợi, sử dụng chướng ngại vật và bụi cây để tránh hoặc phục kích đối thủ.
+Người chơi có thể chiến đấu trực tiếp bằng vũ khí cận chiến hoặc tấn công từ khoảng cách xa bằng các vật thể có thể ném.
+Khi nhận sát thương, HP giảm xuống. Khi HP về 0, nhân vật bị hạ và không thể tiếp tục chiến đấu.
+Người cuối cùng còn sống trên map là người chiến thắng.
+3. Core Gameplay Loop
+Start Game
+    ↓
+Spawn vào Map
+    ↓
+Di chuyển / Quan sát
+    ↓
+Tìm đối thủ
+    ↓
+ ┌───────────────┐
+ │ Quyết định    │
+ │ chiến đấu      │
+ └───────┬───────┘
+         ↓
+Chọn vũ khí
+ ┌───────────────┴───────────────┐
+ ↓                               ↓
+Cận chiến                     Tầm xa
+ ↓                               ↓
+Tiếp cận                      Ném vật thể
+ └───────────────┬───────────────┘
+                 ↓
+             Gây sát thương
+                 ↓
+          Đối thủ mất HP
+                 ↓
+        HP = 0 ? ─── No ──→ Tiếp tục chiến đấu
+          │
+         Yes
+          ↓
+     Đối thủ bị hạ
+          ↓
+Còn người chơi khác?
+     │              │
+    Yes             No
+     ↓              ↓
+Tiếp tục        Victory
+
+
+________________
+
+
+4. Player
+4.1. Trạng thái
+Player có các trạng thái cơ bản:
+* Alive: đang sống và có thể di chuyển/chiến đấu.
+* Hit: vừa nhận sát thương.
+* Dead: HP bằng 0 và bị loại khỏi trận.
+MVP không yêu cầu các trạng thái phức tạp như stun, knockback hoặc status effect.
+________________
+
+
+4.2. HP
+Mỗi nhân vật có một lượng HP cố định.
+Quy tắc
+* Khi nhận sát thương: HP giảm.
+* HP không tự hồi trong MVP.
+* HP không được phép nhỏ hơn 0.
+* Khi HP = 0 → nhân vật bị hạ.
+* Nhân vật đã bị hạ không thể tiếp tục tấn công hoặc di chuyển.
+MVP đề xuất
+Parameter
+	Giá trị đề xuất
+	Max HP
+	100
+	Starting HP
+	100
+	HP Regeneration
+	Không có
+	Revive
+	Không có
+	Các giá trị có thể được điều chỉnh trong quá trình balance test.
+________________
+
+
+5. Movement
+Người chơi có thể di chuyển tự do trong map.
+5.1. Movement Requirement
+* Di chuyển 4 hướng hoặc 8 hướng tùy input system.
+* Không thể đi xuyên qua các chướng ngại vật.
+* Không thể đi ra ngoài giới hạn map.
+* Có thể đi vào bụi cây.
+* Có thể di chuyển trong khu vực bụi cây.
+5.2. Mobile Control
+MVP đề xuất sử dụng:
+* Virtual joystick bên trái: di chuyển.
+* Khu vực/action button bên phải: tấn công.
+* Button chuyển vũ khí: chuyển giữa cận chiến và tầm xa.
+________________
+
+
+6. Weapon System
+Mỗi người chơi bắt đầu trận đấu với cả hai loại vũ khí.
+MVP chỉ có 2 weapon:
+1. Melee Weapon
+2. Ranged Weapon
+Không có hệ thống nhặt hoặc trang bị vũ khí trong MVP.
+________________
+
+
+7. Melee Weapon
+7.1. Concept
+Vũ khí cận chiến là một cây búa.
+Người chơi phải tiếp cận đối thủ trong phạm vi đánh để gây sát thương.
+7.2. Gameplay
+Khi người chơi kích hoạt attack:
+1. Kiểm tra đối tượng nằm trong attack range.
+2. Nếu có enemy/player trong vùng đánh → gây damage.
+3. Nếu không có mục tiêu → đòn đánh không gây damage.
+4. Sau khi đánh → chờ attack cooldown trước khi có thể đánh tiếp.
+7.3. Đặc điểm
+Parameter
+	MVP
+	Weapon
+	Hammer
+	Attack Type
+	Melee
+	Range
+	Ngắn
+	Damage
+	TBD
+	Attack Cooldown
+	TBD
+	Target
+	Player/Bot
+	Projectile
+	Không
+	Gameplay Role
+Melee có ưu điểm:
+* Sát thương trực tiếp.
+* Không cần projectile.
+* Hiệu quả khi áp sát.
+Nhược điểm:
+* Phải tiếp cận đối thủ.
+* Có nguy cơ bị phản công ở khoảng cách gần.
+________________
+
+
+8. Ranged Weapon
+8.1. Concept
+Vũ khí tầm xa sử dụng các vật thể có thể ném, ví dụ:
+* Bóng tuyết.
+* Đá.
+* Các vật thể đơn giản khác.
+MVP có thể sử dụng Snowball làm projectile mẫu.
+8.2. Gameplay
+Khi người chơi kích hoạt attack:
+1. Tạo projectile.
+2. Projectile bay theo hướng tấn công.
+3. Nếu projectile va chạm với đối thủ → gây damage.
+4. Projectile biến mất sau khi va chạm hoặc đi hết giới hạn tồn tại.
+8.3. Đặc điểm
+Parameter
+	MVP
+	Weapon
+	Snowball
+	Attack Type
+	Ranged
+	Damage
+	TBD
+	Projectile Speed
+	TBD
+	Attack Cooldown
+	TBD
+	Maximum Range
+	TBD
+	Target
+	Player/Bot
+	Gameplay Role
+Ranged có ưu điểm:
+* Có thể gây sát thương từ xa.
+* Cho phép người chơi tấn công trước khi đối thủ tiếp cận.
+Nhược điểm:
+* Projectile có thể bị chặn bởi chướng ngại vật.
+* Người chơi cần ngắm/hướng tấn công chính xác.
+________________
+
+
+9. Weapon Switching
+Người chơi sở hữu cả hai vũ khí ngay từ đầu.
+Người chơi có thể chuyển đổi giữa:
+Hammer ↔ Snowball
+Khi chuyển vũ khí:
+* Weapon hiện tại được thay thế bằng weapon mới.
+* Chỉ weapon đang được chọn mới có thể tấn công.
+* Không có giới hạn số lần chuyển vũ khí.
+MVP không yêu cầu:
+* Ammunition.
+* Weapon inventory.
+* Weapon rarity.
+* Weapon upgrade.
+* Weapon pickup.
+* Weapon crafting.
+________________
+
+
+10. Combat System
+10.1. Damage
+Khi một attack hợp lệ đánh trúng mục tiêu:
+Target HP = Target HP - Damage
+
+
+Nếu:
+Target HP <= 0
+
+
+→ Target bị hạ.
+10.2. Friendly Fire
+MVP không có friendly fire vì concept hiện tại tập trung vào free-for-all survival.
+Mọi người chơi/bot đều là đối thủ của nhau.
+________________
+
+
+11. Map
+11.1. Map Concept
+Map là một khu vực 2D tương đối rộng, cho phép nhiều người chơi/bot di chuyển và chiến đấu.
+Map cần có:
+* Khu vực trống.
+* Chướng ngại vật.
+* Bụi cây.
+* Các khu vực có tầm nhìn khác nhau.
+Mục tiêu của level design là tạo ra nhiều lựa chọn:
+Tấn công – Né tránh – Phục kích – Chạy trốn – Ẩn nấp
+________________
+
+
+12. Obstacles
+Chướng ngại vật là các vật thể cố định trên map.
+Ví dụ:
+* Đá.
+* Cây.
+* Tường.
+* Thùng.
+* Vật thể môi trường.
+Gameplay Function
+Chướng ngại vật:
+* Chặn movement.
+* Có thể chặn projectile.
+* Tạo cover.
+* Tạo các khu vực chiến đấu khác nhau.
+Requirement
+Projectile không được xuyên qua các obstacle được thiết lập là solid.
+Player và Bot cũng không được di chuyển xuyên qua obstacle.
+________________
+
+
+13. Bush / Bụi cây
+Bụi cây là một mechanic quan trọng của MVP vì nó tạo ra yếu tố ẩn nấp và phục kích.
+13.1. Enter Bush
+Khi player đi vào bụi:
+* Player được xem là đang hidden.
+* Hình ảnh player có thể được làm mờ/che một phần để thể hiện trạng thái ẩn.
+13.2. Detection
+Trong MVP, có thể sử dụng rule đơn giản:
+Player trong bụi không thể bị phát hiện nếu đối thủ không ở gần hoặc không có line of sight phù hợp.
+Để tránh làm hệ thống AI quá phức tạp, MVP có thể sử dụng một hệ thống detection đơn giản:
+Enemy nhìn thấy Player
+        ↓
+Player có đang trong Bush?
+        ↓
+    Yes → kiểm tra khoảng cách
+        ↓
+Trong Detection Range?
+   ↓              ↓
+  Yes             No
+   ↓               ↓
+Phát hiện       Không phát hiện
+
+
+13.3. Attack từ Bush
+MVP cho phép người chơi tấn công khi đang ở trong bụi.
+Khi tấn công:
+* Vị trí player có thể được tiết lộ cho đối thủ.
+* Đây tạo ra trade-off giữa ẩn nấp và tấn công.
+________________
+
+
+14. Bot
+Bot đóng vai trò đối thủ AI.
+Bot cần có những khả năng cơ bản tương tự player:
+* Di chuyển.
+* Phát hiện đối thủ.
+* Chọn mục tiêu.
+* Tấn công.
+* Chuyển đổi giữa melee/ranged.
+* Nhận damage.
+* Bị hạ.
+14.1. AI MVP
+Không cần AI quá phức tạp.
+Behavior cơ bản:
+Idle / Roaming
+      ↓
+Detect Enemy?
+   ↓       ↓
+  No      Yes
+   ↓       ↓
+Roam    Chase / Attack
+             ↓
+        Enemy chết?
+         ↓      ↓
+        Yes     No
+         ↓       ↓
+    Find Target  Continue Combat
+
+
+14.2. Bot Decision
+Bot có thể ưu tiên:
+1. Đối thủ gần nhất.
+2. Đối thủ trong attack range.
+3. Đối thủ vừa phát hiện.
+Bot có thể:
+* Dùng ranged khi còn khoảng cách.
+* Dùng melee khi đã áp sát.
+* Di chuyển né tránh đơn giản.
+* Không cần chiến thuật phức tạp trong MVP.
+________________
+
+
+15. Spawn System
+Khi bắt đầu trận:
+* Player được spawn tại một vị trí hợp lệ.
+* Bot được spawn tại các vị trí khác.
+* Không spawn trực tiếp lên obstacle.
+* Không spawn quá gần nhau.
+Spawn Requirement
+Spawn point phải đảm bảo:
+* Nằm trong playable area.
+* Không nằm trong obstacle.
+* Không nằm ngoài map boundary.
+* Có đủ khoảng cách tối thiểu với các spawn point khác.
+________________
+
+
+16. Victory Condition
+Người chơi thắng khi trở thành người cuối cùng còn sống trên map.
+Logic:
+Player alive?
+    ↓
+Còn opponent alive?
+    ↓
+   Yes → Continue
+    ↓
+   No
+    ↓
+VICTORY
+
+
+Victory xảy ra khi:
+Alive Players = 1
+
+
+và người còn sống đó là player.
+________________
+
+
+17. Defeat Condition
+Người chơi thua khi HP giảm xuống 0.
+Player HP <= 0
+        ↓
+Player Dead
+        ↓
+DEFEAT
+
+
+Sau khi bị hạ:
+* Player không thể tiếp tục điều khiển nhân vật.
+* Player không thể tấn công.
+* Trận đấu kết thúc đối với người chơi.
+MVP không có revive.
+________________
+
+
+18. Match Flow
+18.1. Start
+Main Menu
+    ↓
+Start Match
+    ↓
+Loading
+    ↓
+Spawn Player + Bots
+    ↓
+Gameplay
+
+
+18.2. Gameplay
+Explore
+  ↓
+Find Enemy
+  ↓
+Combat
+  ↓
+Enemy Dead?
+  ↓
+Continue
+  ↓
+Last Survivor?
+
+
+18.3. Victory
+Last Survivor
+     ↓
+Victory Screen
+     ↓
+Play Again / Main Menu
+
+
+18.4. Defeat
+Player HP = 0
+     ↓
+Defeat Screen
+     ↓
+Play Again / Main Menu
+
+
+________________
+
+
+19. UI/UX MVP
+MVP chỉ cần các UI quan trọng phục vụ gameplay.
+19.1. Gameplay HUD
+Bao gồm:
+* HP Bar.
+* Movement Joystick.
+* Attack Button.
+* Weapon Switch Button.
+* Weapon Indicator.
+* Có thể bổ sung số lượng người còn sống.
+Ví dụ:
+┌─────────────────────────────┐
+│ HP ██████████     Alive: 8  │
+│                             │
+│                             │
+│          GAME MAP           │
+│                             │
+│                             │
+│                             │
+│ [Joystick]       [Attack]   │
+│                  [Weapon]   │
+└─────────────────────────────┘
+
+
+________________
+
+
+20. Camera
+Camera theo dõi player trong map rộng.
+Requirement:
+* Player luôn nằm trong vùng nhìn chính.
+* Camera di chuyển theo player.
+* Camera không vượt quá boundary của map.
+* Các đối tượng ngoài vùng camera có thể được tối ưu bằng hệ thống rendering/culling tùy engine.
+________________
+
+
+21. MVP Parameter Table
+Các giá trị dưới đây là giá trị khởi đầu để prototype, không phải balance cuối cùng.
+Parameter
+	Initial Value
+	Player HP
+	100
+	Bot HP
+	100
+	Melee Damage
+	TBD
+	Ranged Damage
+	TBD
+	Melee Range
+	TBD
+	Ranged Range
+	TBD
+	Melee Cooldown
+	TBD
+	Ranged Cooldown
+	TBD
+	Projectile Speed
+	TBD
+	Number of Players
+	TBD
+	Number of Bots
+	TBD
+	Map Size
+	TBD
+	Minimum Spawn Distance
+	TBD
+	Các thông số combat nên được đưa vào configuration để Designer có thể điều chỉnh trong quá trình balance mà không cần thay đổi gameplay code.
+________________
+
+
+22. MVP Scope
+In Scope
+Gameplay
+* Player movement.
+* Player HP.
+* Damage system.
+* Death system.
+* Victory condition.
+* Defeat condition.
+* Melee weapon.
+* Ranged weapon.
+* Weapon switching.
+* Projectile collision.
+* Obstacles.
+* Bush/hiding mechanic.
+* Bot movement.
+* Bot detection.
+* Bot combat.
+* Player vs Bot combat.
+* Player vs Player combat nếu multiplayer được triển khai trong MVP.
+Level
+* Một map rộng.
+* Map boundary.
+* Obstacles.
+* Bush areas.
+* Spawn points.
+UI
+* Gameplay HUD.
+* HP bar.
+* Attack button.
+* Weapon switch button.
+* Victory screen.
+* Defeat screen.
+* Restart/Play Again.
+________________
+
+
+23. Out of Scope
+Các hệ thống sau chưa nằm trong MVP:
+* Character classes.
+* Character customization.
+* Weapon rarity.
+* Weapon upgrade.
+* Item pickup.
+* Loot system.
+* Inventory.
+* Equipment system.
+* Skill system.
+* Ultimate skill.
+* Leveling.
+* Experience.
+* Permanent progression.
+* Currency.
+* Shop.
+* Daily missions.
+* Quest.
+* Battle Pass.
+* Cosmetic system.
+* Ranking.
+* Matchmaking phức tạp.
+* Shrinking zone.
+* Multiple maps.
+* Multiple game modes.
+* Complex enemy types.
+* Boss.
+* PvE wave system.
+________________
+
+
+24. MVP Success Criteria
+MVP được xem là đạt yêu cầu khi người chơi có thể hoàn thành toàn bộ gameplay loop:
+Start Match → Spawn → Di chuyển → Tìm đối thủ → Chiến đấu → Hạ đối thủ → Tiếp tục chiến đấu → Victory/Defeat → Play Again
+Các tiêu chí kiểm thử chính:
+1. Player có thể di chuyển ổn định trên toàn bộ playable area.
+2. Player có thể sử dụng cả hai weapon.
+3. Melee có thể gây damage trong đúng attack range.
+4. Ranged projectile có thể gây damage khi va chạm.
+5. Obstacle có thể chặn movement và projectile theo design.
+6. Bush có thể tạo trạng thái hidden theo rule đã thiết kế.
+7. Bot có thể phát hiện và tấn công player.
+8. HP giảm chính xác khi nhận damage.
+9. Character bị hạ khi HP về 0.
+10. Người chơi thắng khi trở thành người cuối cùng còn sống.
+11. Người chơi thua khi nhân vật bị hạ.
+12. Sau Victory/Defeat, người chơi có thể bắt đầu trận mới.
+________________
+
+
+25. Các vấn đề cần kiểm chứng trong Prototype
+Đây là những vấn đề Designer/QA nên đặc biệt quan tâm trong quá trình test MVP:
+Combat
+* Melee có quá mạnh so với ranged không?
+* Ranged có quá an toàn không?
+* Khoảng cách đánh có phù hợp với kích thước map không?
+* Combat có tạo cảm giác phản hồi rõ ràng không?
+Map
+* Map có quá rộng khiến người chơi khó tìm thấy đối thủ không?
+* Có đủ obstacle để tạo cover không?
+* Có quá nhiều bush khiến người chơi liên tục bị mất dấu đối thủ không?
+* Có khu vực nào quá mạnh khiến người chơi có thể camp không?
+Bot
+* Bot có tìm được player không?
+* Bot có bị kẹt ở obstacle không?
+* Bot có quá thông minh so với người chơi mới không?
+* Bot có khiến trận đấu trở nên nhàm chán không?
+Match Duration
+* Một trận đấu kéo dài bao lâu?
+* Người chơi có phải chạy quá lâu để tìm đối thủ không?
+* Có tình trạng hai người chơi liên tục chạy trốn khiến trận đấu không kết thúc không?
+________________
+
+
+26. Design Principle của MVP
+MVP cần chứng minh một điều:
+"Một trận survival 2D với movement, melee, ranged combat và khả năng tận dụng địa hình có đủ vui để người chơi muốn chơi lại hay không?"
+Do đó, mọi feature mới trong giai đoạn MVP nên được đánh giá bằng câu hỏi:
+Feature này có trực tiếp làm gameplay chiến đấu/sinh tồn tốt hơn không?
+Nếu không, ưu tiên đưa feature đó ra khỏi MVP.
+________________
+
+
+27. MVP Core Experience
+Trải nghiệm mà người chơi cần cảm nhận được:
+Di chuyển → Quan sát → Phát hiện → Quyết định → Tấn công/Né tránh → Sử dụng địa hình → Sinh tồn
+Điểm hấp dẫn chính không nằm ở số lượng vũ khí hay số lượng hệ thống, mà nằm ở việc người chơi phải đưa ra quyết định:
+"Tôi nên áp sát bằng búa, tấn công từ xa bằng bóng tuyết, hay trốn vào bụi và chờ cơ hội?"
+Đây là gameplay loop cần được ưu tiên balance và polish trước tất cả các hệ thống mở rộng.

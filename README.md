@@ -3,7 +3,7 @@
 Ứng dụng học tập đa năng: upload tài liệu (audio, ảnh, PDF, video), tự động trích xuất nội dung, tạo mindmap và câu hỏi ôn tập bằng AI.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-126%20passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-140%20passed-brightgreen.svg)](tests/)
 [![Issues](https://img.shields.io/github/issues/canhcutlo/PenG)](https://github.com/canhcutlo/PenG/issues)
 [![Release](https://img.shields.io/github/v/release/canhcutlo/PenG)](https://github.com/canhcutlo/PenG/releases)
 
@@ -181,6 +181,32 @@ print(public_url)
 import uvicorn
 uvicorn.run("app.main:app", host="0.0.0.0", port=8000)
 ```
+
+## Chia sẻ máy chủ qua Cloudflare Tunnel
+
+Repo có kèm sẵn `cloudflared.exe` (bản Windows) để mở public endpoint tạm thời mà không cần mở cổng router hay cấu hình DNS:
+
+```powershell
+# Cửa sổ 1 — chạy server PenG
+peng-server --host 0.0.0.0 --port 8000
+
+# Cửa sổ 2 — mở quick tunnel trỏ về server đang chạy
+.\cloudflared.exe tunnel --url http://localhost:8000
+```
+
+`cloudflared` sẽ in ra một URL dạng `https://<tên-ngẫu-nhiên>.trycloudflare.com`. Mở URL đó để truy cập PenG từ máy khác hoặc chia sẻ cho người khác dùng thử.
+
+Khi truy cập qua HTTPS, bật cookie bảo mật trong `.env`:
+
+```env
+AUTH_COOKIE_SECURE=true
+```
+
+Lưu ý:
+
+- Quick tunnel không cần tài khoản Cloudflare, nhưng URL đổi sau mỗi lần chạy — chỉ phù hợp cho demo/thử nghiệm, không dùng cho production.
+- Trên Linux/macOS, tải nhị phân `cloudflared` của hệ điều hành tương ứng thay vì dùng file `.exe`.
+- Nếu server chạy trong Docker/Colab, thay `http://localhost:8000` bằng địa chỉ thực tế của server.
 
 ## Cấu trúc thư mục
 

@@ -11,6 +11,7 @@ venv/
 # Project-private agent/orchestration files
 .opencode/
 .agents/
+.commandcode/
 skills-lock.json
 AGENTS.md
 Plan.md
@@ -32,7 +33,7 @@ uploads/
 temp/
 
 # Model weights
-models/
+/models/
 *.gguf
 
 # IDE
