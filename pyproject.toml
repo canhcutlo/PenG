@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "peng"
-version = "1.0.0"
+version = "1.1.0"
 description = "AI Học Tập Thông Minh — Ứng dụng học tập đa năng với STT, OCR, RAG và Mindmap"
 readme = "README.md"
 requires-python = ">=3.10"

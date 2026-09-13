@@ -5,11 +5,22 @@
 import hashlib
 import os
 from pathlib import Path
+import re
 import tarfile
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+def get_version() -> str:
+    pyproject_file = PROJECT_ROOT / "pyproject.toml"
+    if pyproject_file.exists():
+        match = re.search(r'version\s*=\s*"([^"]+)"', pyproject_file.read_text(encoding="utf-8"))
+        if match:
+            return match.group(1)
+    return "1.1.0"
+
+VERSION = get_version()
 DIST_DIR = PROJECT_ROOT / "dist"
-ARCHIVE_NAME = "PenG-1.0.0.tar.gz"
+ARCHIVE_NAME = f"PenG-{VERSION}.tar.gz"
 OUTPUT_PATH = DIST_DIR / ARCHIVE_NAME
 
 # Patterns / directory names to exclude from the release bundle
@@ -100,7 +111,7 @@ def create_release_archive():
                 if should_exclude(rel_path):
                     continue
 
-                arcname = str(Path("PenG-1.0.0") / rel_path).replace("\\", "/")
+                arcname = str(Path(f"PenG-{VERSION}") / rel_path).replace("\\", "/")
                 tar.add(file_path, arcname=arcname)
                 included_count += 1
 

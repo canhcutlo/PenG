@@ -65,6 +65,8 @@ async def generate_structured(
     use_instructor: bool | None = None,
     max_new_tokens: int = 512,
     response_schema: dict | None = None,
+    temperature: float | None = None,
+    **kwargs,
 ) -> T:
     """Generate and validate a schema-constrained response."""
     use_instructor = settings.use_instructor if use_instructor is None else use_instructor
@@ -85,6 +87,8 @@ async def generate_structured(
                 max_new_tokens=max_new_tokens,
                 response_schema=response_schema or response_model.model_json_schema(),
                 raise_on_error=True,
+                temperature=temperature,
+                **kwargs,
             )
             data = _extract_json(raw)
             return response_model.model_validate(data)
@@ -132,7 +136,14 @@ def _default_system_prompt(response_model: Type[T]) -> str:
 def _format_validation_error(exc: Exception) -> str:
     if isinstance(exc, ValidationError):
         try:
-            return f"Validation error: {json.dumps(exc.errors(), ensure_ascii=False, default=str)}"
+            hint = f"Validation error: {json.dumps(exc.errors(), ensure_ascii=False, default=str)}"
         except (TypeError, ValueError):
-            return f"Validation error: {str(exc)}"
-    return f"{type(exc).__name__}: {str(exc)}"
+            hint = f"Validation error: {str(exc)}"
+    else:
+        hint = f"{type(exc).__name__}: {str(exc)}"
+
+    if "options" in hint and "unique" in hint:
+        hint += " Ensure all 4 options in each question are completely distinct and unique."
+    elif "No JSON object" in hint or "Unterminated" in hint or "Expecting" in hint:
+        hint += " The response was incomplete or cut off. Ensure the JSON response is fully complete and valid."
+    return hint

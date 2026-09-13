@@ -27,7 +27,7 @@ async def get_mindmap(doc_id: str, user: dict = Depends(require_auth)):
         raise HTTPException(status_code=404, detail=f"Document {doc_id} not found")
 
     artifact = get_latest_artifact(doc_id, "mindmap", status="completed")
-    if artifact and validate_mindmap_structure(artifact["content"] or ""):
+    if artifact and "Thông tin chính của" not in (artifact["content"] or "") and validate_mindmap_structure(artifact["content"] or ""):
         log_activity(doc_id, "mindmapped", user["user_id"], {"source": "artifact", "artifact_id": artifact["artifact_id"]})
         return MindmapResponse(doc_id=doc_id, markdown=artifact["content"], source="artifact")
 

@@ -120,6 +120,48 @@ async def test_generate_quiz_valid(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_generate_quiz_rejects_wrong_question_count(monkeypatch):
+    payload = json.dumps({
+        "questions": [{
+            "question": "Q?",
+            "options": ["A", "B", "C", "D"],
+            "correct_index": 0,
+            "explanation": "A",
+        }]
+    })
+    monkeypatch.setattr(structured, "completion_func", _make_fake_llm(json_payload=payload))
+
+    with pytest.raises(GenerationError):
+        await generate_quiz("text", num_questions=3)
+
+
+@pytest.mark.asyncio
+async def test_generate_quiz_scales_token_budget(monkeypatch):
+    captured = {}
+    payload = json.dumps({
+        "questions": [
+            {
+                "question": f"Q{i}?",
+                "options": ["A", "B", "C", "D"],
+                "correct_index": 0,
+                "explanation": "Đáp án đúng.",
+            }
+            for i in range(5)
+        ]
+    })
+
+    async def fake(prompt, system_prompt=None, **kwargs):
+        captured.update(kwargs)
+        return payload
+
+    monkeypatch.setattr(structured, "completion_func", fake)
+    result = await generate_quiz("text", num_questions=5)
+    assert len(result.questions) == 5
+    assert captured["max_new_tokens"] == 1100
+    assert captured["response_schema"]["properties"]["questions"]["minItems"] == 5
+
+
+@pytest.mark.asyncio
 async def test_generate_quiz_rejects_duplicate_options(monkeypatch):
     """Pydantic validation rejects duplicated options even if LLM sends them."""
     quiz_payload = json.dumps(

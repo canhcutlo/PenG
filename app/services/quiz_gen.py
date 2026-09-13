@@ -19,7 +19,7 @@ class QuizItem(BaseModel):
     @classmethod
     def unique_options(cls, v: list[str]) -> list[str]:
         if len(set(v)) != len(v):
-            raise ValueError("options must be unique")
+            raise ValueError("options must be unique. Ensure all 4 options in each question are completely distinct and unique.")
         return v
 
 
@@ -28,18 +28,26 @@ class QuizOutput(BaseModel):
 
 
 async def generate_quiz(text: str, num_questions: int = 5) -> QuizOutput:
-    """Generate and validate quiz questions from text.
-
-    Raises GenerationError when the model cannot produce valid JSON
-    within the retry bound.
-    """
+    """Generate and validate the requested number of quiz questions."""
+    num_questions = max(1, min(10, int(num_questions)))
     prompt = build_quiz_prompt(text, num_questions)
+    response_schema = QuizOutput.model_json_schema()
+    response_schema["required"] = ["questions"]
+    response_schema["properties"]["questions"]["minItems"] = num_questions
+    response_schema["properties"]["questions"]["maxItems"] = num_questions
     quiz = await generate_structured(
         prompt,
         QuizOutput,
         max_retries=2,
-        max_new_tokens=min(768, max(320, num_questions * 150)),
+        max_new_tokens=min(1536, max(640, num_questions * 220)),
+        response_schema=response_schema,
+        temperature=0.35,
     )
+    if len(quiz.questions) != num_questions:
+        raise GenerationError(
+            f"Quiz returned {len(quiz.questions)} questions; expected {num_questions}",
+            reason="invalid_output",
+        )
     return quiz
 
 

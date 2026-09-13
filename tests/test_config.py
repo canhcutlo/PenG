@@ -23,9 +23,10 @@ def test_default_settings_paths_are_absolute():
 
 
 def test_default_settings_paths_resolve_under_project_root():
-    assert settings.upload_dir == PROJECT_ROOT / "uploads"
-    assert settings.sqlite_path == PROJECT_ROOT / "peng_history.db"
-    assert settings.lightrag_working_dir == PROJECT_ROOT / "lightrag_data"
+    fresh = Settings()
+    assert fresh.upload_dir == PROJECT_ROOT / "uploads"
+    assert fresh.sqlite_path == PROJECT_ROOT / "peng_history.db"
+    assert fresh.lightrag_working_dir == PROJECT_ROOT / "lightrag_data"
 
 
 def test_relative_env_paths_resolve_to_project_root(monkeypatch):

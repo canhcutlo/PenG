@@ -8,7 +8,7 @@ import json
 from fastapi.testclient import TestClient
 from app.main import app
 from app.services.artifacts import regenerate_artifact
-from app.services.mindmap_gen import validate_mindmap_structure, sanitize_mindmap
+from app.services.mindmap_gen import build_fallback_mindmap, validate_mindmap_structure, sanitize_mindmap
 from app.services.summary_gen import validate_summary_markdown
 from app.db.artifact_store import get_latest_artifact, get_artifacts_by_doc
 from app.db.sqlite_store import insert_document
@@ -49,6 +49,14 @@ def test_sanitize_mindmap_removes_html_and_fences():
     assert "<script>" not in out
     assert "```" not in out
     assert "####" not in out
+
+
+def test_fallback_mindmap_is_valid_for_numbered_document():
+    text = """GDD MVP\n1. Overview\n1.1. Goal\nCore gameplay\n2. Combat\n2.1. Weapons\nMelee\n3. Match\n3.1. Win condition\nLast player wins\n"""
+    markdown = build_fallback_mindmap(text)
+    assert validate_mindmap_structure(markdown)
+    assert "# GDD MVP" in markdown
+    assert markdown.count("## ") == 3
 
 
 def test_summary_validation_accepts_valid():

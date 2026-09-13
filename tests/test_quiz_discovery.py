@@ -21,6 +21,21 @@ def _question() -> dict:
     }
 
 
+def test_quiz_discovery_returns_empty_without_aggregate_join(auth_client, monkeypatch):
+    user_id = get_auth_user_id(auth_client)
+    doc_id = uuid.uuid4().hex[:12]
+    insert_document(doc_id, "empty.pdf", "empty.pdf", "pdf", 10, uuid.uuid4().hex, user_id)
+
+    def fail_list(*_args, **_kwargs):
+        raise AssertionError("empty discovery should not run quiz aggregate query")
+
+    monkeypatch.setattr("app.routers.quiz.list_quizzes_for_document", fail_list)
+    response = auth_client.get(f"/api/documents/{doc_id}/quizzes")
+    assert response.status_code == 200
+    assert response.json()["quizzes"] == []
+    assert response.json()["total"] == 0
+
+
 def test_quiz_discovery_stats_and_attempt_pagination(auth_client):
     user_id = get_auth_user_id(auth_client)
     doc_id = uuid.uuid4().hex[:12]

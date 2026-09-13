@@ -94,7 +94,7 @@ Ngoài ra, bạn có thể tạo gói mã nguồn mở độc lập (open format
 ```bash
 python scripts/package_release.py
 ```
-Gói nén sẽ được tạo tự động tại `dist/PenG-1.0.0.tar.gz` (loại bỏ an toàn `.git`, cache, môi trường ảo và model weights lớn).
+Gói nén sẽ được tạo tự động tại `dist/PenG-1.1.0.tar.gz` (loại bỏ an toàn `.git`, cache, môi trường ảo và model weights lớn).
 
 ### 3. Khởi chạy từ bất kỳ thư mục nào bằng lệnh CLI
 Sau khi cài đặt package, PenG cung cấp lệnh CLI `peng-server` (entrypoint được khai báo trong `pyproject.toml`) cho phép khởi chạy Uvicorn server từ bất kỳ đâu trên hệ thống:

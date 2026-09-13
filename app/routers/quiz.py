@@ -23,6 +23,7 @@ from app.db.sqlite_store import (
     log_activity,
 )
 from app.services.file_storage import get_document_file_path
+from app.db.chunk_store import get_chunks_for_doc
 from app.services.quiz_gen import generate_quiz
 from app.services.extractor import extract, get_text_from_result
 from app.services.auth import require_auth, verify_csrf
@@ -52,9 +53,15 @@ async def generate_quiz_endpoint(
         raise HTTPException(status_code=404, detail=f"Document {doc_id} not found")
 
     try:
-        file_path = get_document_file_path(doc_id)
-        result = await extract(str(file_path), doc["category"])
-        text = get_text_from_result(result)
+        if num_questions < 1 or num_questions > 10:
+            raise HTTPException(status_code=422, detail="num_questions must be between 1 and 10")
+
+        chunks = get_chunks_for_doc(doc_id, user["user_id"])
+        text = "\n\n".join(chunk["text"] for chunk in chunks).strip()
+        if not text:
+            file_path = get_document_file_path(doc_id)
+            result = await extract(str(file_path), doc["category"])
+            text = get_text_from_result(result)
         if not text.strip():
             raise HTTPException(status_code=422, detail="No text extracted from document")
 
@@ -68,7 +75,9 @@ async def generate_quiz_endpoint(
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Quiz generation failed: {exc}")
+        detail = getattr(exc, "detail", str(exc))
+        reason = getattr(exc, "reason", "runtime")
+        raise HTTPException(status_code=500, detail=f"Quiz generation failed ({reason}): {detail}")
 
 
 @router.get("/documents/{doc_id}/quizzes", response_model=QuizDiscoveryResponse)
@@ -83,10 +92,19 @@ async def discover_document_quizzes(
         raise HTTPException(status_code=422, detail="limit must be 1..200 and offset must be non-negative")
     if not get_document(doc_id, user["user_id"]):
         raise HTTPException(status_code=404, detail=f"Document {doc_id} not found")
+    total = count_quizzes_for_document(doc_id, user["user_id"])
+    if total == 0:
+        return QuizDiscoveryResponse(
+            doc_id=doc_id,
+            total=0,
+            limit=limit,
+            offset=offset,
+            quizzes=[],
+        )
     rows = list_quizzes_for_document(doc_id, user["user_id"], limit, offset)
     return QuizDiscoveryResponse(
         doc_id=doc_id,
-        total=count_quizzes_for_document(doc_id, user["user_id"]),
+        total=total,
         limit=limit,
         offset=offset,
         quizzes=[QuizSummary(**row) for row in rows],

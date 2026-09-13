@@ -71,37 +71,47 @@ export async function renderSummary(panel, state) {
   } catch (error) { clear(panel).append(errorState(`Không tải được tóm tắt: ${error.message}`)); }
 }
 function validateMindmapMarkdown(markdown) {
-  const lines = String(markdown || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  if (!/^#\s+\S/.test(lines[0] || "")) return false;
-  let branches = 0;
-  let bullets = null;
-  for (const line of lines) {
-    if (/^#\s+\S/.test(line)) {
-      if (branches) return false;
-    } else if (/^##\s+\S/.test(line)) {
-      if (bullets !== null && (bullets < 2 || bullets > 5)) return false;
-      branches += 1;
-      bullets = 0;
-    } else if (/^-\s+\S/.test(line)) {
-      if (bullets === null) return false;
-      bullets += 1;
-    } else return false;
-  }
-  return branches >= 3 && branches <= 7 && bullets !== null && bullets >= 2 && bullets <= 5;
+  const text = String(markdown || "").trim();
+  return text.length > 0 && text.includes("#");
 }
+let markmapCssInjected = false;
 async function markmapRender(container, markdown) {
   try {
-    const [{ Transformer }, { Markmap }] = await Promise.all([import("https://cdn.jsdelivr.net/npm/markmap-lib@0.18.12/+esm"), import("https://cdn.jsdelivr.net/npm/markmap-view@0.18.12/+esm")]);
-    if (!validateMindmapMarkdown(markdown)) return { ok: false, stage: "structure" };
+    if (!markdown || !String(markdown).trim()) return { ok: false, stage: "structure" };
+    const [{ Transformer }, { Markmap, globalCSS, loadCSS, loadJS }] = await Promise.all([
+      import("https://cdn.jsdelivr.net/npm/markmap-lib@0.18.12/+esm"),
+      import("https://cdn.jsdelivr.net/npm/markmap-view@0.18.12/+esm")
+    ]);
+
+    if (!markmapCssInjected && globalCSS) {
+      const style = document.createElement("style");
+      style.id = "markmap-global-css";
+      style.textContent = `${globalCSS}\n.markmap { width: 100%; height: 100%; min-height: 28rem; display: block; }`;
+      document.head.append(style);
+      markmapCssInjected = true;
+    }
+
     const transformer = new Transformer();
     const { root } = transformer.transform(markdown);
-    const svg = h("svg", { role: "img", "aria-label": "Sơ đồ tư duy của tài liệu" });
+    if (!root) return { ok: false, stage: "structure" };
+
+    const { styles, scripts } = transformer.getAssets();
+    if (styles && loadCSS) loadCSS(styles);
+    if (scripts && loadJS) loadJS(scripts);
+
+    clear(container);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "markmap");
+    svg.setAttribute("style", "width: 100%; height: 100%; min-height: 28rem; display: block;");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Sơ đồ tư duy của tài liệu");
     container.append(svg);
+
     const mindmap = Markmap.create(svg, { autoFit: true }, root);
     requestAnimationFrame(() => mindmap.fit());
     const observer = new ResizeObserver(() => mindmap.fit());
     observer.observe(container);
-    return { ok: true, observer };
+    return { ok: true, observer, mindmap };
   } catch (error) {
     console.error("[mindmap] render failed", error);
     return { ok: false, stage: "module-or-render", error };
@@ -129,7 +139,7 @@ export async function renderQuiz(panel, state) {
   clear(panel).append(loadingState("Đang tìm quiz đã lưu…"));
   try {
     const data = await api.quizzes(docId); clear(panel);
-    const count = h("select", { "aria-label": "Số câu hỏi" }, ...[3, 5, 10, 15, 20].map((value) => h("option", { value, selected: value === 5 }, `${value} câu`)));
+    const count = h("select", { "aria-label": "Số câu hỏi" }, ...[3, 5, 10].map((value) => h("option", { value, selected: value === 5 }, `${value} câu`)));
     const generate = h("button", { className: "button primary", type: "button" }, "Tạo quiz mới");
     generate.addEventListener("click", async () => { setBusy(generate, true, "Đang tạo quiz…"); try { const quiz = await api.generateQuiz(docId, Number(count.value)); await openQuiz(panel, quiz); } catch (error) { panel.prepend(errorState(error.message)); } finally { setBusy(generate, false); } });
     panel.append(h("div", { className: "toolbar quiz-toolbar" }, count, generate));
@@ -149,7 +159,11 @@ async function openQuiz(panel, quiz) {
     question.options.forEach((option, optionIndex) => field.append(h("label", { className: "quiz-option" }, h("input", { type: "radio", name: `question-${index}`, value: optionIndex, required: true }), h("span", {}, option)))); form.append(field);
   });
   const result = h("div", { role: "status" }); const submit = h("button", { className: "button primary", type: "submit" }, "Nộp bài"); form.append(submit, result);
-  form.addEventListener("submit", async (event) => { event.preventDefault(); const answers = quiz.questions.map((_, index) => Number(new FormData(form).get(`question-${index}`))); if (answers.some(Number.isNaN)) return; setBusy(submit, true, "Đang chấm bài…"); try { const scored = await api.submitQuiz(quiz.quiz_id, answers); clear(result).append(h("p", { className: "score" }, `Kết quả: ${scored.score}/${scored.total} câu đúng.`)); quiz.questions.forEach((question, index) => { const labels = form.querySelectorAll(`input[name="question-${index}"]`); labels.forEach((input) => input.closest("label").classList.add(Number(input.value) === question.correct_index ? "correct" : Number(input.value) === answers[index] ? "incorrect" : "")); }); const attempts = await api.attempts(quiz.quiz_id); result.append(h("p", { className: "status-text" }, `Đã lưu ${attempts.total} lượt làm.`)); } catch (error) { clear(result).append(errorState(error.message)); } finally { setBusy(submit, false); } });
+  form.addEventListener("submit", async (event) => { event.preventDefault(); const answers = quiz.questions.map((_, index) => Number(new FormData(form).get(`question-${index}`))); if (answers.some(Number.isNaN)) return; setBusy(submit, true, "Đang chấm bài…"); try { const scored = await api.submitQuiz(quiz.quiz_id, answers); clear(result).append(h("p", { className: "score" }, `Kết quả: ${scored.score}/${scored.total} câu đúng.`)); quiz.questions.forEach((question, index) => { const labels = form.querySelectorAll(`input[name="question-${index}"]`); labels.forEach((input) => {
+        const label = input.closest("label");
+        const className = Number(input.value) === question.correct_index ? "correct" : Number(input.value) === answers[index] ? "incorrect" : null;
+        if (className) label.classList.add(className);
+      }); }); const attempts = await api.attempts(quiz.quiz_id); result.append(h("p", { className: "status-text" }, `Đã lưu ${attempts.total} lượt làm.`)); } catch (error) { clear(result).append(errorState(error.message)); } finally { setBusy(submit, false); } });
   panel.append(form);
 }
 export async function renderKnowledge(panel, state) {

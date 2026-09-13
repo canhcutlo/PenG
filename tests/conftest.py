@@ -10,23 +10,29 @@ from app.config import settings
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_db():
+def setup_db(tmp_path_factory):
     """Ensure SQLite tables exist once per test session; disable background processing."""
     settings.process_on_upload = False
     settings.index_on_upload = False
     settings.llm_device = "cpu"
     settings.auth_cookie_secure = False
 
-    db_path = settings.sqlite_path
-    if db_path.exists():
-        db_path.unlink()
-    if settings.upload_dir.exists():
-        shutil.rmtree(settings.upload_dir)
-    if settings.lightrag_working_dir.exists():
-        shutil.rmtree(settings.lightrag_working_dir)
+    test_dir = tmp_path_factory.mktemp("peng_test")
+    orig_sqlite = settings.sqlite_path
+    orig_upload = settings.upload_dir
+    orig_lightrag = settings.lightrag_working_dir
+
+    settings.sqlite_path = test_dir / "test_peng_history.db"
+    settings.upload_dir = test_dir / "test_uploads"
+    settings.lightrag_working_dir = test_dir / "test_lightrag"
+
     settings.upload_dir.mkdir(exist_ok=True)
     init_sqlite()
     yield
+
+    settings.sqlite_path = orig_sqlite
+    settings.upload_dir = orig_upload
+    settings.lightrag_working_dir = orig_lightrag
 
 
 @pytest.fixture

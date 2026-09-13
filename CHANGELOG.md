@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-09-13
+
+### Added
+- **Document Source Browsing & Chunk Citations**: Added source chunk locator resolution, chunk browsing API (`GET /api/documents/{id}/source`), and quiz discovery/attempt endpoints (`GET /api/documents/{id}/quizzes`, `GET /api/quiz/{id}/attempts`).
+- **Multiformat Document Ingestion**: Support direct upload and text extraction for `.txt`, `.md`, and `.docx` documents in addition to images, audio, video, and PDF.
+- **Frontend Modularization**: Re-architected frontend from monolithic inline script to modular ES modules (`static/js/` app, api, canvas, dom, router, source, state) with automated frontend unit tests.
+- **Cloudflared Tunnel Helper**: Added quick tunnel runner and HTTPS session cookie guidance for zero-config remote access.
+
+### Changed
+- **Optimized AI Token Scaling & Grammar Constraints**: Grammar-constrained JSON schemas for llama.cpp runtime, dynamic token budget scaling for quiz and chat generation, and even-sampling overview retrieval.
+- **Test DB Isolation**: Isolated test session database in temp directory via pytest fixtures to protect user data in `peng_history.db`.
+- **Dynamic Release Packaging**: Enhanced `scripts/package_release.py` to dynamically resolve version metadata from `pyproject.toml`.
+
+### Fixed
+- **Mindmap SVG Rendering**: Fixed SVG DOM element namespace creation (`http://www.w3.org/2000/svg`) and stylesheet injection in `dom.js` and `canvas.js`, restoring interactive Markmap SVG rendering; replaced dummy filler text with real contextual phrases.
+- **Quiz Option Diversity & Collapse Prevention**: Enabled caller-specified temperature (`0.35`) in `llm.py` and `quiz_gen.py`, raised retry threshold (`max_retries=2`) with targeted prompt feedback to prevent repetitive options.
+- **Chat Completion Truncation**: Scaled context token budget to 768 tokens for explanatory queries and added truncation detection to ensure complete answers.
+
 ## [1.0.0] - 2026-09-06
 
 ### Added

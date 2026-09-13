@@ -178,7 +178,15 @@ Rules:
 - Cite only listed evidence IDs.
 - Use polarity unknown when evidence is insufficient.
 - For restrictive questions, do not reverse the restriction.
-- Return only the requested JSON object."""
+- Return only the requested JSON object.
+
+Respond with JSON matching this schema:
+{{
+  "answer": "your concise answer in {language} ({language_label})",
+  "polarity": "yes|no|unknown",
+  "evidence_ids": ["E1", ...],
+  "warnings": []
+}}"""
 
 
 def build_faithful_chat_prompt(

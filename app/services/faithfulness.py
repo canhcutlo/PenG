@@ -301,6 +301,38 @@ def _build_safe_fallback(
     )
 
 
+_EXPLANATORY_PATTERNS = [
+    re.compile(r"\bgiải\s+thích\b", re.IGNORECASE),
+    re.compile(r"\btổng\s+quan\b", re.IGNORECASE),
+    re.compile(r"\btóm\s+tắt\b", re.IGNORECASE),
+    re.compile(r"\bphân\s+tích\b", re.IGNORECASE),
+    re.compile(r"\bquan\s+trọng\b", re.IGNORECASE),
+    re.compile(r"\bnội\s+dung\b", re.IGNORECASE),
+    re.compile(r"\boverview\b", re.IGNORECASE),
+    re.compile(r"\bexplain\b", re.IGNORECASE),
+    re.compile(r"\bsummarize\b", re.IGNORECASE),
+]
+
+
+def _is_explanatory_question(question: str) -> bool:
+    """Detect if the question is an overview/explanatory question requiring longer answers."""
+    return any(p.search(question) for p in _EXPLANATORY_PATTERNS)
+
+
+def _is_answer_truncated(answer_text: str) -> bool:
+    """Detect if the answer text was cut off mid-sentence."""
+    text = answer_text.strip()
+    if not text:
+        return True
+    if text.endswith((",", "-", ":", ";", "(", "[", "{", "…")):
+        return True
+    trailing_words = {"và", "nhưng", "hoặc", "là", "của", "với", "rằng", "and", "or", "but", "with", "that", "in", "to"}
+    words = text.split()
+    if words and words[-1].lower() in trailing_words:
+        return True
+    return False
+
+
 async def generate_faithful_answer(
     question: str,
     evidence: list[EvidenceItem],
@@ -352,6 +384,7 @@ async def generate_faithful_answer(
     guard_warnings: list[str] = []
     prompt = base_prompt
     generation_error: GenerationError | None = None
+    token_budget = 768 if _is_explanatory_question(question) else 512
 
     for attempt in range(max_retries + 1):
         if attempt > 0 and guard_warnings:
@@ -365,7 +398,7 @@ async def generate_faithful_answer(
                 system_prompt=FAITHFUL_ANSWER_SYSTEM,
                 max_retries=1,
                 use_instructor=False,
-                max_new_tokens=384,
+                max_new_tokens=token_budget,
                 response_schema=response_schema,
             )
         except GenerationError as exc:
@@ -373,6 +406,14 @@ async def generate_faithful_answer(
             break
 
         guarded, guard_warnings = apply_guard_rules(raw, evidence, question, language)
+        if _is_answer_truncated(guarded.answer):
+            guard_warnings.append(
+                "Answer appears cut off or truncated. Provide a complete, concise answer."
+            )
+            if attempt < max_retries:
+                token_budget = 768
+                continue
+
         if not guard_warnings:
             return guarded
 

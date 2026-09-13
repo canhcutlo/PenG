@@ -5,8 +5,11 @@
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 export function clear(node) { node.replaceChildren(); return node; }
+const SVG_TAGS = new Set(["svg", "g", "path", "circle", "rect", "line", "polyline", "polygon", "text", "tspan", "foreignObject"]);
 export function h(tag, attributes = {}, ...children) {
-  const node = document.createElement(tag);
+  const node = SVG_TAGS.has(tag.toLowerCase())
+    ? document.createElementNS("http://www.w3.org/2000/svg", tag)
+    : document.createElement(tag);
   for (const [name, value] of Object.entries(attributes || {})) {
     if (value == null || value === false) continue;
     if (name === "className") node.className = value;

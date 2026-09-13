@@ -154,6 +154,7 @@ async def complete(
     max_new_tokens: int = 512,
     response_schema: dict | None = None,
     raise_on_error: bool = False,
+    temperature: float | None = None,
     **kwargs,
 ) -> str:
     """Generate a completion, optionally constrained to a JSON schema."""
@@ -173,8 +174,11 @@ async def complete(
                 system_prompt,
                 max_new_tokens,
                 response_schema=response_schema,
+                temperature=temperature,
             )
-        return await _complete_transformers(llm, prompt, system_prompt, max_new_tokens)
+        return await _complete_transformers(
+            llm, prompt, system_prompt, max_new_tokens, temperature=temperature
+        )
     except Exception as exc:
         if raise_on_error:
             raise RuntimeError(f"LLM generation failed: {exc}") from exc
@@ -187,6 +191,7 @@ async def _complete_transformers(
     prompt: str,
     system_prompt: str | None,
     max_new_tokens: int,
+    temperature: float | None = None,
 ) -> str:
     model, tokenizer = model_tokenizer
     text = tokenizer.apply_chat_template(
@@ -197,10 +202,11 @@ async def _complete_transformers(
     inputs = tokenizer(text, return_tensors="pt").to(model.device)
 
     input_len = inputs.input_ids.shape[1]
+    effective_temp = temperature if temperature is not None else 0.3
     outputs = model.generate(
         **inputs,
         max_new_tokens=max_new_tokens,
-        temperature=0.3,
+        temperature=effective_temp,
         do_sample=True,
     )
     response_ids = outputs[0][input_len:]
@@ -219,16 +225,18 @@ async def _complete_llama_cpp(
     system_prompt: str | None,
     max_new_tokens: int,
     response_schema: dict | None = None,
+    temperature: float | None = None,
 ) -> str:
     messages = _build_messages(prompt, system_prompt)
     response_format = None
     if response_schema:
         response_format = {"type": "json_object", "schema": response_schema}
 
+    effective_temp = temperature if temperature is not None else (0.1 if response_schema else 0.3)
     chat_kwargs = {
         "messages": messages,
         "max_tokens": max_new_tokens,
-        "temperature": 0.1 if response_schema else 0.3,
+        "temperature": effective_temp,
     }
     if response_format:
         chat_kwargs["response_format"] = response_format
@@ -243,7 +251,7 @@ async def _complete_llama_cpp(
         completion_kwargs = {
             "prompt": prompt_text,
             "max_tokens": max_new_tokens,
-            "temperature": 0.1 if response_schema else 0.3,
+            "temperature": effective_temp,
             "stop": ["User:", "</s>"],
         }
         if response_schema:
