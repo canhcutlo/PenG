@@ -76,6 +76,28 @@ def test_upload_valid_pdf(auth_client):
     assert data["category"] == "pdf"
 
 
+def test_upload_valid_webm(auth_client):
+    """Frontend-advertised WebM videos should be accepted by the API."""
+    content = b"\x1a\x45\xdf\xa3" + b"webm" + b"\x00" * 100
+    response = auth_client.post(
+        "/api/upload",
+        files={"file": ("test.webm", io.BytesIO(content), "video/webm")},
+        data={"category": "video"},
+    )
+    assert response.status_code == 200
+    assert response.json()["category"] == "video"
+
+
+def test_upload_legacy_doc_is_rejected(auth_client):
+    """Legacy .doc is not advertised because the extractor cannot parse it reliably."""
+    response = auth_client.post(
+        "/api/upload",
+        files={"file": ("legacy.doc", io.BytesIO(b"legacy-word"), "application/msword")},
+        data={"category": "pdf"},
+    )
+    assert response.status_code == 400
+
+
 def test_upload_invalid_extension(auth_client):
     """Upload .exe — expect 400."""
     content = b"MZ\x90\x00" + b"\x00" * 100
@@ -107,6 +129,7 @@ def test_upload_no_file(auth_client):
 def test_upload_duplicate(auth_client):
     """Upload same content twice — second should return existing doc_id."""
     content = b"\x89PNG\r\n\x1a\n" + b"dup_test" + b"\x00" * 50
+    before_dirs = {path.name for path in settings.upload_dir.iterdir() if path.is_dir()}
     resp1 = auth_client.post(
         "/api/upload",
         files={"file": ("dup.png", io.BytesIO(content), "image/png")},
@@ -114,6 +137,8 @@ def test_upload_duplicate(auth_client):
     )
     assert resp1.status_code == 200
     doc_id_1 = resp1.json()["doc_id"]
+    after_first_dirs = {path.name for path in settings.upload_dir.iterdir() if path.is_dir()}
+    assert after_first_dirs - before_dirs == {doc_id_1}
 
     resp2 = auth_client.post(
         "/api/upload",
@@ -122,6 +147,24 @@ def test_upload_duplicate(auth_client):
     )
     assert resp2.status_code == 200
     assert resp2.json()["doc_id"] == doc_id_1
+    after_second_dirs = {path.name for path in settings.upload_dir.iterdir() if path.is_dir()}
+    assert after_second_dirs == after_first_dirs
+
+
+def test_oversized_upload_cleans_partial_file(auth_client, monkeypatch):
+    """An oversized upload must not leave a partial document directory behind."""
+    before_dirs = {path.name for path in settings.upload_dir.iterdir() if path.is_dir()}
+    monkeypatch.setattr(settings, "max_upload_size_mb", 0)
+
+    response = auth_client.post(
+        "/api/upload",
+        files={"file": ("too-large.png", io.BytesIO(b"not-empty"), "image/png")},
+        data={"category": "image"},
+    )
+
+    assert response.status_code == 413
+    after_dirs = {path.name for path in settings.upload_dir.iterdir() if path.is_dir()}
+    assert after_dirs == before_dirs
 
 
 

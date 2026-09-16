@@ -6,14 +6,17 @@ import hashlib
 import shutil
 import os
 from pathlib import Path
+import aiofiles
 from fastapi import UploadFile, HTTPException
 from app.config import settings
+
+UPLOAD_CHUNK_SIZE = 1024 * 1024
 
 EXTENSION_MAP = {
     "audio": {".mp3", ".wav", ".m4a", ".ogg", ".flac"},
     "image": {".png", ".jpg", ".jpeg", ".bmp", ".tiff"},
-    "pdf": {".pdf", ".txt", ".md", ".docx", ".doc"},
-    "video": {".mp4", ".avi", ".mov", ".mkv"},
+    "pdf": {".pdf", ".txt", ".md", ".docx"},
+    "video": {".mp4", ".avi", ".mov", ".mkv", ".webm"},
 }
 
 MIME_MAP = {
@@ -25,10 +28,15 @@ MIME_MAP = {
         "text/markdown",
         "text/x-markdown",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/msword",
         "application/octet-stream",
     },
-    "video": {"video/mp4", "video/x-msvideo", "video/quicktime", "video/x-matroska"},
+    "video": {
+        "video/mp4",
+        "video/x-msvideo",
+        "video/quicktime",
+        "video/x-matroska",
+        "video/webm",
+    },
 }
 
 
@@ -69,37 +77,41 @@ def validate_size(file_size: int):
         )
 
 
-def compute_checksum(file_path: Path) -> str:
-    """Compute SHA-256 checksum of a file."""
-    sha = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        while chunk := f.read(8192):
-            sha.update(chunk)
-    return sha.hexdigest()
-
-
 def get_doc_dir(doc_id: str) -> Path:
     """Get the storage directory for a document."""
     return settings.upload_dir / doc_id
 
 
-def save_upload(file: UploadFile, doc_id: str) -> Path:
-    """Save uploaded file to doc directory. Returns the file path."""
+async def save_upload(file: UploadFile, doc_id: str) -> tuple[Path, int, str]:
+    """Stream an upload to disk and return path, byte size, and SHA-256.
+
+    The size limit is enforced while streaming so an oversized upload is never
+    held entirely in memory or left behind as a partial file.
+    """
     doc_dir = get_doc_dir(doc_id)
     doc_dir.mkdir(parents=True, exist_ok=True)
 
-    safe_name = _safe_filename(file.filename or "upload")
+    safe_name = _safe_filename(file.filename or "upload") or "upload"
     file_path = doc_dir / safe_name
+    partial_path = doc_dir / f".{safe_name}.part"
+    checksum = hashlib.sha256()
+    file_size = 0
 
-    content = file.file.read()
-    file_size = len(content)
+    try:
+        async with aiofiles.open(partial_path, "wb") as output:
+            while chunk := await file.read(UPLOAD_CHUNK_SIZE):
+                file_size += len(chunk)
+                validate_size(file_size)
+                checksum.update(chunk)
+                await output.write(chunk)
+        os.replace(partial_path, file_path)
+    except Exception:
+        partial_path.unlink(missing_ok=True)
+        if doc_dir.exists() and not any(doc_dir.iterdir()):
+            doc_dir.rmdir()
+        raise
 
-    validate_size(file_size)
-
-    with open(file_path, "wb") as f:
-        f.write(content)
-
-    return file_path
+    return file_path, file_size, checksum.hexdigest()
 
 
 def cleanup_document(doc_id: str):

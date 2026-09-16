@@ -63,8 +63,8 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 500
     allowed_audio_extensions: str = ".mp3,.wav,.m4a,.ogg,.flac"
     allowed_image_extensions: str = ".png,.jpg,.jpeg,.bmp,.tiff"
-    allowed_pdf_extensions: str = ".pdf"
-    allowed_video_extensions: str = ".mp4,.avi,.mov,.mkv"
+    allowed_pdf_extensions: str = ".pdf,.txt,.md,.docx"
+    allowed_video_extensions: str = ".mp4,.avi,.mov,.mkv,.webm"
     processing_timeout_seconds: int = 600
     process_on_upload: bool = True
     index_on_upload: bool = True

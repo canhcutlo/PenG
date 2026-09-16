@@ -21,7 +21,7 @@ async def extract(file_path: str, category: str) -> dict:
             with open(file_path, "r", encoding="utf-8", errors="replace") as f:
                 text = f.read()
             return {"text": text, "pages": 1}
-        elif ext in (".docx", ".doc"):
+        elif ext == ".docx":
             try:
                 import fitz
                 doc = fitz.open(file_path)

@@ -12,7 +12,7 @@ from app.db.sqlite_store import (
     insert_job,
     get_job,
 )
-from app.services.file_storage import validate_upload, save_upload, compute_checksum
+from app.services.file_storage import validate_upload, save_upload, cleanup_document
 from app.services.processing import process_document_sync
 from app.services.auth import require_auth, verify_csrf
 from app.config import settings
@@ -46,12 +46,11 @@ async def upload_file(
     job_id = uuid.uuid4().hex[:12]
     original_name = file.filename or "upload"
 
-    file_path = save_upload(file, doc_id)
-    checksum = compute_checksum(file_path)
-    file_size = file_path.stat().st_size
+    file_path, file_size, checksum = await save_upload(file, doc_id)
 
     existing = find_document_by_checksum(checksum, user["user_id"])
     if existing:
+        cleanup_document(doc_id)
         dup_job_id = uuid.uuid4().hex[:12]
         insert_job(dup_job_id, existing["doc_id"], "extract", user["user_id"])
         if settings.process_on_upload:
