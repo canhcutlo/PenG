@@ -4,15 +4,15 @@ Tested on 2026-09-17 with Python 3.14.6 and Node.js 24.19.0 on Windows.
 
 ## Automated checks
 
-### Focused upload-storage tests
+### Focused upload tests
 
 Command:
 
 ```powershell
-python -m pytest tests/test_file_storage.py -q
+python -m pytest tests/test_file_storage.py tests/test_uploads_service.py -q
 ```
 
-Result: `8 passed in 0.39s`
+Result: `10 passed`.
 
 Covered cases:
 
@@ -24,6 +24,8 @@ Covered cases:
 - Duplicate-upload cleanup removes the newly written duplicate directory.
 - Configured `.webm` uploads are accepted and unsupported legacy `.doc` files are rejected.
 - Backend extension validation reads from `Settings`, avoiding a second hard-coded list.
+- The upload service consumes the streamed size and checksum after the router/service split.
+- Duplicate detection still cleans the new upload and returns the existing document.
 
 ### Frontend checks
 

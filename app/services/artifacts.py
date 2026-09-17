@@ -8,7 +8,7 @@ import hashlib
 import uuid
 import logging
 from app.config import settings
-from app.db.sqlite_store import log_activity
+from app.db.sqlite_store import get_document, log_activity
 from app.db.artifact_store import (
     insert_artifact,
     update_artifact_status,
@@ -55,6 +55,30 @@ async def regenerate_artifact(doc_id: str, user_id: str, artifact_type: str) -> 
         raise ValueError(f"Unknown artifact type: {artifact_type}")
 
     return await _generate_artifact(doc_id, user_id, text, artifact_type, generator)
+
+
+async def get_or_generate_mindmap(doc_id: str, user_id: str) -> tuple[str, str] | None:
+    doc = get_document(doc_id, user_id)
+    if not doc:
+        return None
+    artifact = get_latest_artifact(doc_id, "mindmap", status="completed")
+    if (
+        artifact
+        and "Thông tin chính của" not in (artifact["content"] or "")
+        and validate_mindmap_structure(artifact["content"] or "")
+    ):
+        log_activity(doc_id, "mindmapped", user_id, {"source": "artifact", "artifact_id": artifact["artifact_id"]})
+        return artifact["content"], "artifact"
+
+    from app.services.extractor import extract, get_text_from_result
+    from app.services.file_storage import get_document_file_path
+
+    result = await extract(str(get_document_file_path(doc_id)), doc["category"])
+    markdown = await generate_mindmap_markdown(get_text_from_result(result))
+    if not validate_mindmap_structure(markdown):
+        raise ValueError("Generated mindmap has invalid structure")
+    log_activity(doc_id, "mindmapped", user_id, {"source": "generated"})
+    return markdown, "generated"
 
 
 async def _generate_artifact(doc_id: str, user_id: str, text: str, artifact_type: str, generator) -> dict:
@@ -121,8 +145,6 @@ async def _generate_artifact(doc_id: str, user_id: str, text: str, artifact_type
 async def _get_document_text(doc_id: str) -> str:
     from app.services.file_storage import get_document_file_path
     from app.services.extractor import extract, get_text_from_result
-    from app.db.sqlite_store import get_document
-
     doc = get_document(doc_id)
     if not doc:
         raise ValueError(f"Document {doc_id} not found")

@@ -29,7 +29,7 @@ def test_quiz_discovery_returns_empty_without_aggregate_join(auth_client, monkey
     def fail_list(*_args, **_kwargs):
         raise AssertionError("empty discovery should not run quiz aggregate query")
 
-    monkeypatch.setattr("app.routers.quiz.list_quizzes_for_document", fail_list)
+    monkeypatch.setattr("app.services.quizzes.list_quizzes_for_document", fail_list)
     response = auth_client.get(f"/api/documents/{doc_id}/quizzes")
     assert response.status_code == 200
     assert response.json()["quizzes"] == []

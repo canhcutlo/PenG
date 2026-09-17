@@ -13,8 +13,10 @@
   * "transformers" (default): Hugging Face Transformers + optional 4-bit quantize.
   * "llama_cpp": local GGUF via `llama-cpp-python`, CPU-friendly.
 """
+import asyncio
 import logging
 import os
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -30,6 +32,7 @@ _llm_model = None
 _llm_tokenizer = None
 _llm_llama = None
 _embedding_model: SentenceTransformer | None = None
+_llama_lock = threading.RLock()
 
 
 def llm_available() -> bool:
@@ -98,36 +101,37 @@ def _get_transformers_llm():
 def _get_llama_cpp_llm():
     """Lazy-load a GGUF model via llama-cpp-python."""
     global _llm_llama
-    if _llm_llama is None:
-        if not settings.llm_gguf_model_path:
-            raise RuntimeError(
-                "LLM_RUNTIME=llama_cpp requires LLM_GGUF_MODEL_PATH to be set"
-            )
-        gguf_path = Path(settings.llm_gguf_model_path)
-        if not gguf_path.exists():
-            raise FileNotFoundError(f"GGUF model not found: {gguf_path}")
+    with _llama_lock:
+        if _llm_llama is None:
+            if not settings.llm_gguf_model_path:
+                raise RuntimeError(
+                    "LLM_RUNTIME=llama_cpp requires LLM_GGUF_MODEL_PATH to be set"
+                )
+            gguf_path = Path(settings.llm_gguf_model_path)
+            if not gguf_path.exists():
+                raise FileNotFoundError(f"GGUF model not found: {gguf_path}")
 
-        try:
-            from llama_cpp import Llama
-        except ImportError as exc:
-            raise RuntimeError(
-                "llama-cpp-python is not installed. "
-                "Install it with: pip install llama-cpp-python"
-            ) from exc
+            try:
+                from llama_cpp import Llama
+            except ImportError as exc:
+                raise RuntimeError(
+                    "llama-cpp-python is not installed. "
+                    "Install it with: pip install llama-cpp-python"
+                ) from exc
 
-        n_threads = settings.llm_gguf_n_threads or os.cpu_count() or 4
-        chat_format = settings.llm_gguf_chat_format
-        kwargs = {
-            "model_path": str(gguf_path),
-            "n_ctx": settings.llm_gguf_n_ctx,
-            "n_threads": n_threads,
-            "verbose": False,
-        }
-        if chat_format:
-            kwargs["chat_format"] = chat_format
+            n_threads = settings.llm_gguf_n_threads or os.cpu_count() or 4
+            chat_format = settings.llm_gguf_chat_format
+            kwargs = {
+                "model_path": str(gguf_path),
+                "n_ctx": settings.llm_gguf_n_ctx,
+                "n_threads": n_threads,
+                "verbose": False,
+            }
+            if chat_format:
+                kwargs["chat_format"] = chat_format
 
-        _llm_llama = Llama(**kwargs)
-    return _llm_llama
+            _llm_llama = Llama(**kwargs)
+        return _llm_llama
 
 
 def _get_embedding_model() -> SentenceTransformer:
@@ -159,7 +163,7 @@ async def complete(
 ) -> str:
     """Generate a completion, optionally constrained to a JSON schema."""
     try:
-        llm = _get_llm()
+        llm = await asyncio.to_thread(_get_llm) if settings.llm_runtime == "llama_cpp" else _get_llm()
     except Exception as exc:
         if raise_on_error:
             raise RuntimeError(f"LLM unavailable: {exc}") from exc
@@ -220,6 +224,45 @@ async def _complete_transformers(
 
 
 async def _complete_llama_cpp(
+    llm,
+    prompt: str,
+    system_prompt: str | None,
+    max_new_tokens: int,
+    response_schema: dict | None = None,
+    temperature: float | None = None,
+) -> str:
+    return await asyncio.to_thread(
+        _complete_llama_cpp_sync,
+        llm,
+        prompt,
+        system_prompt,
+        max_new_tokens,
+        response_schema,
+        temperature,
+    )
+
+
+def _complete_llama_cpp_sync(
+    llm,
+    prompt: str,
+    system_prompt: str | None,
+    max_new_tokens: int,
+    response_schema: dict | None = None,
+    temperature: float | None = None,
+) -> str:
+    # ponytail: one shared llama context serializes inference; use a bounded context pool only when parallel throughput justifies its memory cost.
+    with _llama_lock:
+        return _run_llama_cpp(
+            llm,
+            prompt,
+            system_prompt,
+            max_new_tokens,
+            response_schema,
+            temperature,
+        )
+
+
+def _run_llama_cpp(
     llm,
     prompt: str,
     system_prompt: str | None,
