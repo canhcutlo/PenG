@@ -29,7 +29,7 @@ async def upload_file(
 ):
     """Upload a learning material file. Creates a document and processing job."""
 
-    response, task = create_upload(file, category, user["user_id"])
+    response, task = await create_upload(file, category, user["user_id"])
     if task:
         # ponytail: BackgroundTasks is single-process and non-durable; move processing to a durable queue before multi-host deployment.
         background_tasks.add_task(process_document_sync, *task)

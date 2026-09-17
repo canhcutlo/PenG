@@ -16,18 +16,20 @@ from app.db.sqlite_store import (
 from app.models.schemas import JobStatusResponse, UploadResponse
 from app.services.file_storage import (
     cleanup_document,
-    compute_checksum,
     save_upload,
     validate_upload,
 )
 
 
-def create_upload(file: UploadFile, category: str, user_id: str) -> tuple[UploadResponse, tuple[str, str, str] | None]:
+async def create_upload(
+    file: UploadFile,
+    category: str,
+    user_id: str,
+) -> tuple[UploadResponse, tuple[str, str, str] | None]:
     validate_upload(file, category)
     doc_id = uuid.uuid4().hex[:12]
     original_name = file.filename or "upload"
-    file_path = save_upload(file, doc_id)
-    checksum = compute_checksum(file_path)
+    file_path, file_size, checksum = await save_upload(file, doc_id)
 
     existing = find_document_by_checksum(checksum, user_id)
     if existing:
@@ -51,7 +53,7 @@ def create_upload(file: UploadFile, category: str, user_id: str) -> tuple[Upload
         file_path.name,
         original_name,
         category,
-        file_path.stat().st_size,
+        file_size,
         checksum,
         user_id,
     )
