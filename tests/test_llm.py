@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 """Tests for the LLM service: runtime selection, lazy load, fallback, and GGUF path."""
+import asyncio
 import builtins
 from pathlib import Path
+import threading
+import time
 
 import pytest
 
@@ -194,3 +197,65 @@ def test_llama_lazy_load_caches_instance(monkeypatch, tmp_path):
     second = llm_module._get_llama_cpp_llm()
     assert first is second
     assert created["count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_llama_cpp_serializes_concurrent_inference(monkeypatch):
+    settings.llm_runtime = "llama_cpp"
+    active = 0
+    max_active = 0
+    state_lock = threading.Lock()
+
+    class FakeLlama:
+        def create_chat_completion(self, messages, max_tokens, temperature):
+            nonlocal active, max_active
+            with state_lock:
+                active += 1
+                max_active = max(max_active, active)
+            time.sleep(0.05)
+            with state_lock:
+                active -= 1
+            return {"choices": [{"message": {"content": "ok"}}]}
+
+    fake = FakeLlama()
+    monkeypatch.setattr(llm_module, "_llm_llama", fake)
+
+    results = await asyncio.gather(
+        complete("first", raise_on_error=True),
+        complete("second", raise_on_error=True),
+    )
+
+    assert results == ["ok", "ok"]
+    assert max_active == 1
+
+
+@pytest.mark.asyncio
+async def test_llama_cpp_concurrent_lazy_load_creates_one_instance(monkeypatch, tmp_path):
+    settings.llm_runtime = "llama_cpp"
+    settings.llm_gguf_model_path = tmp_path / "model.gguf"
+    settings.llm_gguf_model_path.write_text("fake")
+    created = 0
+
+    class FakeLlama:
+        def __init__(self, **kwargs):
+            nonlocal created
+            created += 1
+            time.sleep(0.05)
+
+    fake_module = type("llama_cpp", (), {"Llama": FakeLlama})()
+    original_import = builtins.__import__
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "llama_cpp":
+            return fake_module
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    first, second = await asyncio.gather(
+        asyncio.to_thread(llm_module._get_llama_cpp_llm),
+        asyncio.to_thread(llm_module._get_llama_cpp_llm),
+    )
+
+    assert first is second
+    assert created == 1

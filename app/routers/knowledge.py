@@ -4,9 +4,8 @@
 """Knowledge graph endpoints for document nodes and related edges."""
 from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import KnowledgeNodeResponse, KnowledgeEdgeResponse
-from app.db.sqlite_store import get_document
-from app.db.knowledge_store import get_latest_node, get_edges_for_source_document
 from app.services.auth import require_auth
+from app.services.knowledge import get_owned_knowledge_node, get_owned_related_edges
 
 router = APIRouter()
 
@@ -14,10 +13,10 @@ router = APIRouter()
 @router.get("/knowledge/nodes/{doc_id}", response_model=KnowledgeNodeResponse)
 async def get_node(doc_id: str, user: dict = Depends(require_auth)):
     """Get the latest knowledge node for a document owned by the user."""
-    if not get_document(doc_id, user["user_id"]):
-        raise HTTPException(status_code=404, detail="Document not found")
-
-    node = get_latest_node(doc_id, user["user_id"])
+    try:
+        node = get_owned_knowledge_node(doc_id, user["user_id"])
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
     if not node:
         raise HTTPException(status_code=404, detail="Knowledge node not found")
 
@@ -27,10 +26,10 @@ async def get_node(doc_id: str, user: dict = Depends(require_auth)):
 @router.get("/knowledge/related/{doc_id}")
 async def get_related(doc_id: str, user: dict = Depends(require_auth)):
     """Get related document edges for a document owned by the user."""
-    if not get_document(doc_id, user["user_id"]):
-        raise HTTPException(status_code=404, detail="Document not found")
-
-    edges = get_edges_for_source_document(doc_id, user["user_id"], status="accepted")
+    try:
+        edges = get_owned_related_edges(doc_id, user["user_id"])
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
     return {
         "source_doc_id": doc_id,
         "edges": [_edge_response(e) for e in edges],

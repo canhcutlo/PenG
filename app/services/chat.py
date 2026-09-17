@@ -46,6 +46,11 @@ def list_chat_sessions(user_id: str, limit: int = 20, offset: int = 0) -> list[d
     return list_sessions(user_id, limit, offset)
 
 
+def document_title(doc_id: str, user_id: str) -> str | None:
+    doc = get_document(doc_id, user_id)
+    return (doc.get("original_name") or doc.get("filename")) if doc else None
+
+
 async def get_session_with_messages(user_id: str, session_id: str) -> tuple[dict, list[dict]]:
     session = get_session(session_id, user_id)
     if not session:

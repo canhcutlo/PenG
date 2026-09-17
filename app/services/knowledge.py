@@ -17,7 +17,9 @@ from app.db.knowledge_store import (
     get_nodes_for_user,
     delete_edges_for_source_document,
     insert_edge,
+    get_edges_for_source_document,
 )
+from app.db.sqlite_store import get_document
 from app.services.llm import embed
 
 logger = logging.getLogger(__name__)
@@ -241,3 +243,15 @@ def _node_embedding_text(node: dict) -> str:
     if labels:
         parts.append(" ".join(labels))
     return " ".join(parts)
+
+
+def get_owned_knowledge_node(doc_id: str, user_id: str) -> dict | None:
+    if not get_document(doc_id, user_id):
+        raise LookupError("Document not found")
+    return get_latest_node(doc_id, user_id)
+
+
+def get_owned_related_edges(doc_id: str, user_id: str) -> list[dict]:
+    if not get_document(doc_id, user_id):
+        raise LookupError("Document not found")
+    return get_edges_for_source_document(doc_id, user_id, status="accepted")

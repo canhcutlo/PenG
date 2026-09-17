@@ -3,7 +3,7 @@
 Ứng dụng học tập đa năng: upload tài liệu (audio, ảnh, PDF, video), tự động trích xuất nội dung, tạo mindmap và câu hỏi ôn tập bằng AI.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-140%20passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-147%20passed-brightgreen.svg)](tests/)
 [![Issues](https://img.shields.io/github/issues/canhcutlo/PenG)](https://github.com/canhcutlo/PenG/issues)
 [![Release](https://img.shields.io/github/v/release/canhcutlo/PenG)](https://github.com/canhcutlo/PenG/releases)
 
@@ -146,8 +146,14 @@ Trên **Windows**, tải [Tesseract installer](https://github.com/UB-Mannheim/te
 | Method | Route | Mô tả |
 |--------|-------|-------|
 | GET | `/api/health` | Kiểm tra server và SQLite |
+| POST | `/api/auth/register` | Tạo tài khoản nội bộ |
+| POST | `/api/auth/login` | Đăng nhập bằng session cookie |
+| POST | `/api/auth/logout` | Thu hồi session |
+| GET | `/api/auth/me` | Lấy người dùng hiện tại |
 | POST | `/api/upload` | Upload file (audio/image/pdf/video) |
 | GET | `/api/jobs/{job_id}` | Trạng thái xử lý tài liệu |
+| GET | `/api/documents` | Danh sách tài liệu của người dùng |
+| GET | `/api/documents/{doc_id}/source` | Đọc source chunk có locator |
 | GET | `/api/query?q=...` | Truy vấn tài liệu đã index |
 | POST | `/api/quiz/generate` | Tạo câu hỏi ôn tập |
 | GET | `/api/quiz/{quiz_id}` | Lấy bộ quiz đã lưu |
@@ -155,6 +161,11 @@ Trên **Windows**, tải [Tesseract installer](https://github.com/UB-Mannheim/te
 | GET | `/api/mindmap/{doc_id}` | Lấy mindmap (markdown) |
 | GET | `/api/history` | Lịch sử học tập |
 | POST | `/api/history` | Ghi log hoạt động |
+| POST | `/api/chat/sessions` | Tạo phiên chat theo tài liệu |
+| GET | `/api/chat/sessions` | Danh sách phiên chat |
+| POST | `/api/chat/{session_id}/messages` | Chat có evidence và citation |
+| GET | `/api/knowledge/nodes/{doc_id}` | Knowledge node của tài liệu |
+| GET | `/api/knowledge/related/{doc_id}` | Tài liệu liên quan cùng người dùng |
 
 ## Chạy trên Google Colab
 
@@ -224,11 +235,15 @@ PenG/
 │   ├── main.py            # FastAPI entrypoint
 │   ├── config.py          # Configuration (pydantic-settings)
 │   ├── routers/           # API routes
+│   │   ├── auth.py        #   Session authentication
 │   │   ├── upload.py      #   File upload
+│   │   ├── documents.py   #   Documents, source, artifacts
 │   │   ├── query.py       #   RAG query
 │   │   ├── quiz.py        #   Quiz endpoints
 │   │   ├── mindmap.py     #   Mindmap endpoints
-│   │   └── history.py     #   Learning history
+│   │   ├── history.py     #   Learning history
+│   │   ├── chat.py        #   Document chat
+│   │   └── knowledge.py   #   Knowledge graph
 │   ├── services/          # Business logic
 │   │   ├── extractor.py   #   Extraction orchestrator
 │   │   ├── stt.py         #   Speech-to-text

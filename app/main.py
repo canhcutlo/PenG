@@ -18,6 +18,7 @@ from app.routers import (
     knowledge,
 )
 from app.db.sqlite_store import init_sqlite
+from app.services.health import database_status
 
 
 STATIC_DIR = PROJECT_ROOT / "static"
@@ -47,15 +48,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     async def health():
-        from app.db.sqlite_store import get_connection
-        try:
-            conn = get_connection()
-            conn.execute("SELECT 1")
-            conn.close()
-            db_status = "ok"
-        except Exception:
-            db_status = "error"
-        return {"status": "ok", "db": db_status}
+        return {"status": "ok", "db": database_status()}
 
     app.include_router(auth.router, prefix="/api", tags=["Auth"])
     app.include_router(upload.router, prefix="/api", tags=["Upload"])
