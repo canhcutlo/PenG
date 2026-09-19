@@ -123,26 +123,29 @@ async def test_quiz_hoc_cach_hoc_generation(monkeypatch):
     # Token budget: min(1536, max(640, 3 * 220)) = 660
     assert captured_kwargs.get("max_new_tokens") == 660
 
-    # Test duplicate options error hint
-    duplicate_payload = json.dumps({
+    # Test duplicate options auto-deduplication and 1-based index clamping
+    duplicate_payload = {
         "questions": [
             {
                 "question": "Phương pháp nào hiệu quả?",
                 "options": ["Active Recall", "Active Recall", "Đọc lại", "Nhồi nhét"],
-                "correct_index": 0,
+                "correct_index": 4,
                 "explanation": "Trùng lặp đáp án.",
             }
         ]
-    })
+    }
+    deduped = QuizOutput.model_validate(duplicate_payload)
+    assert len(deduped.questions[0].options) == 4
+    assert len(set(deduped.questions[0].options)) == 4
+    assert deduped.questions[0].correct_index == 3
 
-    calls = {"n": 0, "hints": []}
+    # Test retry on invalid JSON
+    calls = {"n": 0}
 
     async def fake_retry(prompt, system_prompt=None, **kwargs):
         calls["n"] += 1
-        if "Fix this validation error:" in prompt:
-            calls["hints"].append(prompt.split("Fix this validation error:")[-1])
         if calls["n"] == 1:
-            return duplicate_payload
+            return "not valid json at all"
         # Success on attempt 2
         return json.dumps({
             "questions": [
@@ -159,8 +162,18 @@ async def test_quiz_hoc_cach_hoc_generation(monkeypatch):
     result = await generate_quiz(text, num_questions=1)
     assert len(result.questions) == 1
     assert calls["n"] == 2
-    assert len(calls["hints"]) == 1
-    assert "Ensure all 4 options in each question are completely distinct and unique." in calls["hints"][0]
+
+    # Test fallback when LLM completely fails
+    async def fake_fail(prompt, system_prompt=None, **kwargs):
+        raise RuntimeError("LLM failed")
+
+    monkeypatch.setattr(structured, "completion_func", fake_fail)
+    fallback_quiz = await generate_quiz(text, num_questions=3)
+    assert len(fallback_quiz.questions) == 3
+    for q in fallback_quiz.questions:
+        assert len(q.options) == 4
+        assert len(set(q.options)) == 4
+        assert 0 <= q.correct_index <= 3
 
 
 @pytest.mark.asyncio

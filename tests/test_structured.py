@@ -120,7 +120,7 @@ async def test_generate_quiz_valid(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_generate_quiz_rejects_wrong_question_count(monkeypatch):
+async def test_generate_quiz_falls_back_on_wrong_question_count(monkeypatch):
     payload = json.dumps({
         "questions": [{
             "question": "Q?",
@@ -131,8 +131,8 @@ async def test_generate_quiz_rejects_wrong_question_count(monkeypatch):
     })
     monkeypatch.setattr(structured, "completion_func", _make_fake_llm(json_payload=payload))
 
-    with pytest.raises(GenerationError):
-        await generate_quiz("text", num_questions=3)
+    result = await generate_quiz("text with enough sentences for fallback quiz generation.", num_questions=3)
+    assert len(result.questions) == 3
 
 
 @pytest.mark.asyncio
@@ -162,8 +162,8 @@ async def test_generate_quiz_scales_token_budget(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_generate_quiz_rejects_duplicate_options(monkeypatch):
-    """Pydantic validation rejects duplicated options even if LLM sends them."""
+async def test_generate_quiz_deduplicates_options(monkeypatch):
+    """Pydantic validation automatically disambiguates duplicate options so quiz succeeds."""
     quiz_payload = json.dumps(
         {
             "questions": [
@@ -178,8 +178,43 @@ async def test_generate_quiz_rejects_duplicate_options(monkeypatch):
     )
     monkeypatch.setattr(structured, "completion_func", _make_fake_llm(json_payload=quiz_payload))
 
-    with pytest.raises(GenerationError):
-        await generate_quiz("text", num_questions=1)
+    result = await generate_quiz("text", num_questions=1)
+    assert len(result.questions) == 1
+    opts = result.questions[0].options
+    assert len(opts) == 4
+    assert len(set(opts)) == 4
+
+
+def test_quiz_output_accepts_raw_list_and_normalizes_items():
+    raw_list = [
+        {
+            "question": "Nguyên lý Hòn tuyết lăn tạo ra gì?",
+            "options": ["A", "B", "C", "D"],
+            "correct_index": 4,  # 1-based indexing, should be clamped to 3
+            "explanation": "Giải thích",
+        },
+        {
+            "question": "Câu hỏi số 2?",
+            "options": ["Trùng", "Trùng", "Khác 1", "Khác 2"],  # Duplicate options should be disambiguated
+            "correct_index": "B",  # Letter index, should be 1
+            "explanation": "Giải thích 2",
+        },
+        {
+            "question": "Câu hỏi số 3?",
+            "options": ["Chỉ 2 lựa chọn", "Lựa chọn 2"],  # Short options, should be padded to 4
+            "correct_index": 0,
+        },
+    ]
+    out = QuizOutput.model_validate(raw_list)
+    assert len(out.questions) == 3
+    # Check question 1: correct_index clamped
+    assert out.questions[0].correct_index == 3
+    # Check question 2: duplicate options disambiguated and letter index mapped
+    assert out.questions[1].correct_index == 1
+    assert len(set(out.questions[1].options)) == 4
+    # Check question 3: padded to 4 options and default explanation
+    assert len(out.questions[2].options) == 4
+    assert out.questions[2].explanation
 
 
 
