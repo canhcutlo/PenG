@@ -139,7 +139,7 @@ export async function renderQuiz(panel, state) {
   clear(panel).append(loadingState("Đang tìm quiz đã lưu…"));
   try {
     const data = await api.quizzes(docId); clear(panel);
-    const count = h("select", { "aria-label": "Số câu hỏi" }, ...[3, 5, 10].map((value) => h("option", { value, selected: value === 5 }, `${value} câu`)));
+    const count = h("select", { "aria-label": "Số câu hỏi" }, ...[3, 5, 10].map((value) => h("option", { value, selected: value === 3 }, `${value} câu`)));
     const generate = h("button", { className: "button primary", type: "button" }, "Tạo quiz mới");
     generate.addEventListener("click", async () => { setBusy(generate, true, "Đang tạo quiz…"); try { const quiz = await api.generateQuiz(docId, Number(count.value)); await openQuiz(panel, quiz); } catch (error) { panel.prepend(errorState(error.message)); } finally { setBusy(generate, false); } });
     panel.append(h("div", { className: "toolbar quiz-toolbar" }, count, generate));

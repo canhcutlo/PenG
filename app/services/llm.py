@@ -16,6 +16,7 @@
 import asyncio
 import logging
 import os
+import re
 import threading
 from pathlib import Path
 
@@ -219,10 +220,11 @@ async def _complete_transformers(
     response_ids = outputs[0][input_len:]
     response = tokenizer.decode(response_ids, skip_special_tokens=True)
 
-    for marker in ["assistant", "<|im_start|>assistant", "<|im_end|>", "<|endoftext|>"]:
+    for marker in ["<|im_start|>assistant", "<|im_end|>", "<|endoftext|>"]:
         if marker in response:
             response = response.split(marker)[-1].strip()
 
+    response = re.sub(r"^(?:assistant\s*[:\n]\s*)+", "", response, flags=re.IGNORECASE).strip()
     return response
 
 

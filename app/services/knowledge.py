@@ -120,17 +120,51 @@ def _cosine_similarity(query_vec: np.ndarray, vectors: np.ndarray) -> np.ndarray
 
 
 async def update_knowledge_node_from_artifacts(doc_id: str, user_id: str) -> dict | None:
-    """Create or update a knowledge node after summary and mindmap artifacts are completed."""
+    """Create or update a knowledge node using available artifacts or fallback document text."""
     summary = get_latest_artifact(doc_id, "summary", status="completed")
     mindmap = get_latest_artifact(doc_id, "mindmap", status="completed")
-    if not summary or not mindmap:
+
+    if not summary and not mindmap:
+        summary = get_latest_artifact(doc_id, "summary")
+        mindmap = get_latest_artifact(doc_id, "mindmap")
+
+    doc = get_document(doc_id)
+    doc_name = (doc.get("original_name") or doc.get("filename") or doc_id) if doc else doc_id
+
+    summary_content = (summary.get("content") if summary else "") or ""
+    mindmap_content = (mindmap.get("content") if mindmap else "") or ""
+
+    if not summary_content and not mindmap_content and not doc:
         return None
 
-    title = _extract_title(mindmap.get("content") or "", summary.get("doc_id") or doc_id)
-    labels = _extract_labels(summary.get("content") or "", mindmap.get("content") or "")
+    if not summary_content or not mindmap_content:
+        from app.db.chunk_store import get_chunks_for_doc
+        chunks = get_chunks_for_doc(doc_id)
+        sample_text = " ".join(c.get("text", "") for c in chunks[:5]).strip()
+        if not summary_content:
+            if chunks:
+                summary_content = "\n".join(f"- {c['text'][:180].strip()}" for c in chunks[:5] if c.get("text"))
+            else:
+                summary_content = f"- Tài liệu: {doc_name}"
+        if not mindmap_content:
+            if sample_text:
+                from app.services.mindmap_gen import build_fallback_mindmap
+                mindmap_content = build_fallback_mindmap(sample_text, fallback_title=doc_name)
+            else:
+                mindmap_content = f"# {doc_name}\n## Nội dung\n- Thông tin tài liệu\n- Đang xử lý"
 
-    char_count = summary.get("input_snapshot", {}).get("char_count", 0)
-    reliability = _compute_reliability(summary, mindmap, char_count)
+    dummy_summary = summary or {"artifact_id": f"fallback-summary-{doc_id}", "content": summary_content, "doc_id": doc_id, "input_snapshot": {}}
+    dummy_mindmap = mindmap or {"artifact_id": f"fallback-mindmap-{doc_id}", "content": mindmap_content, "doc_id": doc_id}
+
+    title = _extract_title(mindmap_content, fallback=doc_name)
+    labels = _extract_labels(summary_content, mindmap_content)
+    if not labels and doc_name:
+        norm = _normalize_label(doc_name)
+        if norm:
+            labels = [norm]
+
+    char_count = (summary.get("input_snapshot", {}) if summary else {}).get("char_count", len(summary_content))
+    reliability = _compute_reliability(dummy_summary, dummy_mindmap, char_count)
 
     previous = get_latest_node(doc_id, user_id)
     version = (previous["version"] + 1) if previous else 1
@@ -141,9 +175,9 @@ async def update_knowledge_node_from_artifacts(doc_id: str, user_id: str) -> dic
         user_id=user_id,
         document_id=doc_id,
         title=title,
-        summary=summary.get("content"),
-        mindmap_markdown=mindmap.get("content"),
-        language=summary.get("language") or mindmap.get("language"),
+        summary=summary_content,
+        mindmap_markdown=mindmap_content,
+        language=(summary.get("language") if summary else None) or (mindmap.get("language") if mindmap else None) or "vi",
         labels=labels,
         internal_consistency=reliability["internal_consistency"],
         evidence_coverage=reliability["evidence_coverage"],
@@ -151,8 +185,8 @@ async def update_knowledge_node_from_artifacts(doc_id: str, user_id: str) -> dic
         status=reliability["status"],
         version=version,
         input_snapshot={
-            "summary_artifact_id": summary["artifact_id"],
-            "mindmap_artifact_id": mindmap["artifact_id"],
+            "summary_artifact_id": dummy_summary.get("artifact_id", "fallback"),
+            "mindmap_artifact_id": dummy_mindmap.get("artifact_id", "fallback"),
             "source_text_char_count": char_count,
             "reliability_warnings": reliability["warnings"],
         },

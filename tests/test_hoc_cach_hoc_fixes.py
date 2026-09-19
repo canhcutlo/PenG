@@ -242,6 +242,33 @@ async def test_chat_hoc_cach_hoc_faithfulness(monkeypatch):
     assert captured_tokens.get("max_new_tokens") == 512
 
 
+@pytest.mark.asyncio
+async def test_summary_hoc_cach_hoc_generation(monkeypatch):
+    """Test Summary generation, flexible key handling, and fallback extraction."""
+    from app.services.summary_gen import generate_summary, build_fallback_summary, validate_summary_markdown
+    text = load_hoc_cach_hoc_text()
+
+    # 1. Successful generation with alternative key "points"
+    monkeypatch.setattr(
+        structured,
+        "completion_func",
+        lambda *args, **kwargs: asyncio.sleep(0, result='{"points": ["Não bộ hoạt động theo hai chế độ", "Active Recall nâng cao khả năng ghi nhớ"]}')
+    )
+    summary_md = await generate_summary(text)
+    assert validate_summary_markdown(summary_md)
+    assert "Active Recall" in summary_md
+
+    # 2. Fallback when LLM completely fails
+    async def failing_complete(*args, **kwargs):
+        raise RuntimeError("GPU Out of Memory")
+
+    monkeypatch.setattr(structured, "completion_func", failing_complete)
+    fallback_md = await generate_summary(text)
+    assert validate_summary_markdown(fallback_md)
+    assert fallback_md.startswith("- ")
+    assert len(fallback_md.splitlines()) >= 1
+
+
 async def _run_all():
     print("=== Running Mindmap Tests ===")
     test_mindmap_hoc_cach_hoc_fallback_and_validation()
@@ -259,8 +286,13 @@ async def _run_all():
     await test_chat_hoc_cach_hoc_faithfulness(mp)
     print("-> Chat: PASS")
 
+    print("\n=== Running Summary Tests ===")
+    await test_summary_hoc_cach_hoc_generation(mp)
+    print("-> Summary: PASS")
+
     print("\n>>> ALL VERIFICATION TESTS PASSED SUCCESSFULLY! <<<")
 
 
 if __name__ == "__main__":
     asyncio.run(_run_all())
+

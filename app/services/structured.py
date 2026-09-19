@@ -38,8 +38,8 @@ class GenerationError(Exception):
         self.detail = detail or message
 
 
-def _extract_json(raw: str) -> dict:
-    """Parse JSON from LLM output, tolerating code fences and surrounding text."""
+def _extract_json(raw: str) -> dict | list:
+    """Parse JSON from LLM output, tolerating code fences, trailing text, and extra data."""
     text = raw.strip()
     if text.startswith("```"):
         lines = text.splitlines()
@@ -49,12 +49,35 @@ def _extract_json(raw: str) -> dict:
             lines = lines[:-1]
         text = "\n".join(lines).strip()
 
-    start = text.find("{")
-    end = text.rfind("}")
-    if start == -1 or end == -1 or end <= start:
+    start_obj = text.find("{")
+    start_arr = text.find("[")
+    valid_starts = [idx for idx in (start_obj, start_arr) if idx != -1]
+    if not valid_starts:
         raise ValueError("No JSON object found in LLM output")
+    start = min(valid_starts)
 
-    return json.loads(text[start : end + 1], strict=False)
+    # 1. Use JSONDecoder.raw_decode to parse the first valid JSON structure and ignore extra trailing data
+    try:
+        obj, _ = json.JSONDecoder(strict=False).raw_decode(text[start:])
+        if isinstance(obj, (dict, list)):
+            return obj
+    except (ValueError, json.JSONDecodeError):
+        pass
+
+    # 2. Fallback: slice to the last matching closing brace
+    end = text.rfind("}") if start == start_obj else text.rfind("]")
+    if end != -1 and end > start:
+        try:
+            return json.loads(text[start : end + 1], strict=False)
+        except (ValueError, json.JSONDecodeError):
+            pass
+
+    # 3. Final attempt with outermost boundary
+    end_fallback = max(text.rfind("}"), text.rfind("]"))
+    if end_fallback > start:
+        return json.loads(text[start : end_fallback + 1], strict=False)
+
+    raise ValueError("No JSON object found in LLM output")
 
 
 async def generate_structured(

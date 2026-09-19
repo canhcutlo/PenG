@@ -231,3 +231,36 @@ def test_extract_json_tolerates_literal_newlines_in_strings():
     data = structured._extract_json(raw)
     assert data["answer"] == "Tóm tắt:\n- Ý 1\n- Ý 2"
     assert data["polarity"] == "yes"
+
+
+def test_extract_json_tolerates_extra_trailing_data():
+    """LLMs often emit extra text, code fences, or explanations after the valid JSON object."""
+    raw = 'Here is your quiz:\n{"questions": [{"question": "Q?", "options": ["A","B","C","D"], "correct_index": 0, "explanation": "E"}]}\nHope this is helpful!}\n```'
+    data = structured._extract_json(raw)
+    assert "questions" in data
+    assert len(data["questions"]) == 1
+
+
+def test_summary_output_normalizes_flexible_keys():
+    from app.services.summary_gen import SummaryOutput
+    out1 = SummaryOutput.model_validate({"points": ["Ý 1", "Ý 2"]})
+    assert len(out1.bullets) == 2
+
+    out2 = SummaryOutput.model_validate({"summary": "- Ý một\n- Ý hai"})
+    assert len(out2.bullets) == 2
+
+    out3 = SummaryOutput.model_validate(["Ý 1", "Ý 2", "Ý 3"])
+    assert len(out3.bullets) == 3
+
+
+def test_build_fallback_summary():
+    from app.services.summary_gen import build_fallback_summary, validate_summary_markdown
+    text = (
+        "Đoạn văn thứ nhất nói về tầm quan trọng của việc học tập chủ động.\n\n"
+        "Đoạn văn thứ hai giải thích phương pháp lặp lại ngắt quãng để ghi nhớ lâu dài.\n\n"
+        "Đoạn văn thứ ba phân tích kỹ thuật Feynman nhằm phát hiện lỗ hổng kiến thức.\n\n"
+        "Đoạn văn thứ tư kết luận về cách xây dựng thói quen học tập bền vững."
+    )
+    summary_md = build_fallback_summary(text)
+    assert validate_summary_markdown(summary_md)
+    assert summary_md.startswith("- ")
