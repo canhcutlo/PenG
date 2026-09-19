@@ -98,6 +98,9 @@ def _get_transformers_llm():
     return _llm_model, _llm_tokenizer
 
 
+_get_transformer_llm = _get_transformers_llm
+
+
 def _get_llama_cpp_llm():
     """Lazy-load a GGUF model via llama-cpp-python."""
     global _llm_llama
