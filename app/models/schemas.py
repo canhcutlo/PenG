@@ -318,6 +318,7 @@ class KnowledgeEdgeResponse(BaseModel):
     source_doc_id: str
     target_node_id: str
     target_doc_id: str
+    target_title: str | None = None
     relation_type: str
     similarity_score: float
     evidence: dict

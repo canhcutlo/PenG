@@ -60,16 +60,29 @@ def _node_response(node: dict) -> dict:
 def _edge_response(edge: dict) -> dict:
     evidence = edge.get("evidence_json") or {}
     if isinstance(evidence, str):
-        evidence = {}
+        import json
+        try:
+            evidence = json.loads(evidence)
+        except Exception:
+            evidence = {}
+
+    target_title = evidence.get("target_title") if isinstance(evidence, dict) else None
+    if not target_title:
+        from app.db.sqlite_store import get_document
+        doc = get_document(edge["target_document_id"])
+        if doc:
+            target_title = doc.get("original_name") or doc.get("filename")
+
     return {
         "edge_id": edge["edge_id"],
         "source_node_id": edge["source_node_id"],
         "source_doc_id": edge["source_document_id"],
         "target_node_id": edge["target_node_id"],
         "target_doc_id": edge["target_document_id"],
+        "target_title": target_title or edge["target_document_id"],
         "relation_type": edge["relation_type"],
         "similarity_score": edge["similarity_score"],
-        "evidence": evidence,
+        "evidence": evidence if isinstance(evidence, dict) else {},
         "status": edge["status"],
         "created_at": edge["created_at"],
     }

@@ -282,6 +282,75 @@ async def test_summary_hoc_cach_hoc_generation(monkeypatch):
     assert len(fallback_md.splitlines()) >= 1
 
 
+def test_knowledge_edge_response_target_title(monkeypatch):
+    """Test KnowledgeEdgeResponse schema and _edge_response target_title resolution."""
+    from datetime import datetime, timezone
+    from app.models.schemas import KnowledgeEdgeResponse
+    from app.routers.knowledge import _edge_response
+    import app.db.sqlite_store as sqlite_store
+
+    now = datetime.now(timezone.utc)
+
+    # Case 1: evidence contains target_title
+    edge_with_evidence = {
+        "edge_id": "edge-1",
+        "source_node_id": "node-1",
+        "source_document_id": "doc-src",
+        "target_node_id": "node-2",
+        "target_document_id": "doc-tgt",
+        "relation_type": "shares_topic",
+        "similarity_score": 0.85,
+        "evidence_json": '{"target_title": "Tài Liệu Mẫu"}',
+        "status": "active",
+        "created_at": now,
+    }
+    resp1 = _edge_response(edge_with_evidence)
+    assert resp1["target_title"] == "Tài Liệu Mẫu"
+    validated1 = KnowledgeEdgeResponse.model_validate(resp1)
+    assert validated1.target_title == "Tài Liệu Mẫu"
+
+    # Case 2: evidence has no target_title, fallback to sqlite_store.get_document
+    edge_no_title = {
+        "edge_id": "edge-2",
+        "source_node_id": "node-1",
+        "source_document_id": "doc-src",
+        "target_node_id": "node-3",
+        "target_document_id": "doc-lookup",
+        "relation_type": "builds_on",
+        "similarity_score": 0.92,
+        "evidence_json": "{}",
+        "status": "active",
+        "created_at": now,
+    }
+    monkeypatch.setattr(
+        sqlite_store,
+        "get_document",
+        lambda doc_id: {"original_name": "hoc-cach-hoc.md", "filename": "sample.md"} if doc_id == "doc-lookup" else None,
+    )
+    resp2 = _edge_response(edge_no_title)
+    assert resp2["target_title"] == "hoc-cach-hoc.md"
+    validated2 = KnowledgeEdgeResponse.model_validate(resp2)
+    assert validated2.target_title == "hoc-cach-hoc.md"
+
+    # Case 3: doc not found in store -> falls back to target_document_id
+    edge_unknown = {
+        "edge_id": "edge-3",
+        "source_node_id": "node-1",
+        "source_document_id": "doc-src",
+        "target_node_id": "node-4",
+        "target_document_id": "doc-unknown",
+        "relation_type": "related",
+        "similarity_score": 0.70,
+        "evidence_json": "{}",
+        "status": "active",
+        "created_at": now,
+    }
+    resp3 = _edge_response(edge_unknown)
+    assert resp3["target_title"] == "doc-unknown"
+    validated3 = KnowledgeEdgeResponse.model_validate(resp3)
+    assert validated3.target_title == "doc-unknown"
+
+
 async def _run_all():
     print("=== Running Mindmap Tests ===")
     test_mindmap_hoc_cach_hoc_fallback_and_validation()
@@ -303,9 +372,14 @@ async def _run_all():
     await test_summary_hoc_cach_hoc_generation(mp)
     print("-> Summary: PASS")
 
+    print("\n=== Running Knowledge Edge Tests ===")
+    test_knowledge_edge_response_target_title(mp)
+    print("-> Knowledge Edge: PASS")
+
     print("\n>>> ALL VERIFICATION TESTS PASSED SUCCESSFULLY! <<<")
 
 
 if __name__ == "__main__":
     asyncio.run(_run_all())
+
 

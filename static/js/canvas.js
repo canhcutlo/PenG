@@ -174,7 +174,19 @@ export async function renderKnowledge(panel, state) {
     const node = nodeResult.value; panel.append(h("article", {}, h("h3", {}, node.title || "Tri thức tài liệu"), node.summary ? h("p", {}, node.summary) : null, h("p", { className: "status-text" }, `Trạng thái: ${node.status} · Ngôn ngữ: ${node.language || "không rõ"}`), metric("Tính nhất quán nội bộ", node.internal_consistency), metric("Độ phủ bằng chứng", node.evidence_coverage), metric("Chất lượng trích xuất", node.extraction_quality)));
   }
   if (edgeResult.status === "fulfilled") {
-    const list = h("div", { className: "knowledge-list" }, h("h3", {}, "Liên kết tài liệu")); for (const edge of edgeResult.value.edges || []) list.append(h("div", { className: "row" }, h("strong", {}, edge.target_doc_id), h("div", { className: "status-text" }, `${edge.relation_type} · ${Math.round(edge.similarity_score * 100)}% tương đồng`))); panel.append(list);
+    const list = h("div", { className: "knowledge-list" }, h("h3", {}, "Liên kết tài liệu"));
+    for (const edge of edgeResult.value.edges || []) {
+      const doc = (state.documents || []).find((d) => d.doc_id === edge.target_doc_id);
+      const displayTitle = edge.target_title || doc?.original_name || doc?.filename || edge.evidence?.target_title || edge.target_doc_id;
+      list.append(h("div", { className: "row row-between" },
+        h("div", {},
+          h("strong", {}, displayTitle),
+          edge.target_doc_id && edge.target_doc_id !== displayTitle ? h("div", { className: "status-text" }, `Mã: ${edge.target_doc_id}`) : null
+        ),
+        h("div", { className: "status-text" }, `${edge.relation_type} · ${Math.round(edge.similarity_score * 100)}% tương đồng`)
+      ));
+    }
+    panel.append(list);
   }
   if (nodeResult.status === "rejected" && edgeResult.status === "rejected") panel.append(emptyState("Chưa có dữ liệu tri thức cho tài liệu này."));
 }
